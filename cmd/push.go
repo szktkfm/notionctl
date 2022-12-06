@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"text/tabwriter"
-	"time"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
@@ -23,7 +21,15 @@ func init() {
 }
 
 type PushOptions struct {
-	Db string
+	Db          string
+	Title       string
+	Description string
+	targetDb    notion.Database
+	FilePath    string
+}
+
+type FileHandler struct {
+	Path string
 }
 
 // newでcmdを返す。new関数の中でadd cmdする
@@ -44,38 +50,37 @@ func newCmdPush() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&o.Db, "db", "", "db id")
+	cmd.Flags().StringVar(&o.Title, "title", "", "title string")
+	cmd.Flags().StringVar(&o.Description, "description", "", "description string")
+	cmd.Flags().StringVarP(&o.FilePath, "file", "f", "", "file path")
 	return cmd
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.Db = viper.GetString("db") // ToDo: db引数の値を優先する。でなければviperで読み取る
+	client := notion.NewClient(getSecret())
+
+	// 一回dbを情報をgetしてきて、そこからparameterをbuildする。
+	o.targetDb, _ = client.FindDatabaseByID(context.Background(), o.Db)
+	// if err != nil {
+	// 	return err
+	// }
+
+	fmt.Println(o.targetDb.ID)
 
 	return nil
 }
 
 func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
-	fmt.Println(o.Db)
-	buf := &bytes.Buffer{}
-	httpClient := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: &httpTransport{w: buf},
-	}
-	client := notion.NewClient(getSecret(), notion.WithHTTPClient(httpClient))
+	fmt.Println(args)
 
-	// 一回dbを情報をgetしてきて、そこからparameterをbuildする。
-	db, err := client.FindDatabaseByID(context.Background(), o.Db)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(db.ID)
-
-	params := newParams(db) //ToDo:  param構造体を作る
+	client := notion.NewClient(getSecret())
+	params := o.newCreatePageParams() //ToDo:  param構造体を作る
 	// param.build みたいな感じでparameterをbuildして
 
-	fmt.Printf("params: %#v\n", params)
+	// fmt.Printf("params: %#v\n", params)
 	page, err := client.CreatePage(context.Background(), params)
-	fmt.Printf("bufer: %s", buf)
+	// fmt.Printf("bufer: %s", buf)
 
 	if err != nil {
 		fmt.Println("error")
@@ -94,61 +99,77 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 
 }
 
-func newParams(db notion.Database) notion.CreatePageParams {
+func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 	dbPageProp := make(notion.DatabasePageProperties)
 
-	for k, dp := range db.Properties {
+	for k, dp := range o.targetDb.Properties {
 		// fmt.Printf("properties: %#v\n", k)
 		// fmt.Printf("Properties value: %#v\n", dp)
 		switch dp.Type {
 		case notion.DBPropTypeTitle:
 			dbPageProp[k] = notion.DatabasePageProperty{
-				Title: getRitchText("test title"),
+				Title: getRitchText(o.Title),
 			}
 		case notion.DBPropTypeRichText:
 			dbPageProp[k] = notion.DatabasePageProperty{
-				RichText: getRitchText("this_is_description"),
+				RichText: getRitchText(o.Description),
 			}
-			// case notion.DBPropTypeNumber:
-			// 	a := 10.0
-			// 	dbPageProp[k] = notion.DatabasePageProperty{
-			// 		Number: &a,
-			// 	}
 		}
-
-		// var dpp notion.DatabasePageProperty
-		// propJson, _ := json.Marshal(dp)
-		// fmt.Printf("json: %s\n", propJson)
-		// if err != nil {
-		// }
-
-		// if err := json.Unmarshal(propJson, &dpp); err != nil {
-		// }
-		// dbPageProp[k] = dpp
-		fmt.Println(k)
 	}
 
-	fmt.Println()
-	fmt.Printf("%#v \n", dbPageProp)
-	fmt.Println()
+	fp, _ := os.Open(o.FilePath)
+	// if err != nil {
+	// 	return err
+	// }
+	scanner := bufio.NewScanner(fp)
 
+	// children :=
+
+	// return notion.CreatePageParams{
+	// 	ParentType:             notion.ParentTypeDatabase,
+	// 	ParentID:               o.Db,
+	// 	DatabasePageProperties: &dbPageProp,
+	// 	Children: []notion.Block{
+	// 		notion.Heading1Block{
+	// 			RichText: []notion.RichText{
+	// 				{
+	// 					Text: &notion.Text{
+	// 						Content: "testtest",
+	// 					},
+	// 				},
+	// 				{
+	// 					Text: &notion.Text{
+	// 						Content: "2行目",
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// }
 	return notion.CreatePageParams{
 		ParentType:             notion.ParentTypeDatabase,
-		ParentID:               db.ID,
-		Title:                  getRitchText("title 2"),
+		ParentID:               o.Db,
 		DatabasePageProperties: &dbPageProp,
-		Children: []notion.Block{
-			notion.Heading1Block{
+		Children:               convert(scanner),
+	}
+}
+
+func convert(scanner *bufio.Scanner) []notion.Block {
+	var blocks []notion.Block
+	for scanner.Scan() {
+		blocks = append(blocks,
+			notion.ParagraphBlock{
 				RichText: []notion.RichText{
 					{
 						Text: &notion.Text{
-							Content: "testtest",
+							Content: scanner.Text(),
 						},
 					},
 				},
 			},
-		},
+		)
 	}
+	return blocks
 }
 
 func getRitchText(content string) []notion.RichText {
@@ -160,18 +181,6 @@ func getRitchText(content string) []notion.RichText {
 		},
 	}
 }
-
-// func getDatabesePageProperties() *notion.DatabasePageProperties {
-// 	dpp := make(notion.DatabasePageProperties)
-
-// 	//TODo: propertiesはdbの設定依存であることに注意
-// 	dpp["名前"] = notion.DatabasePageProperty{
-// 		Name:  "testpage",
-// 		Title: getRitchText(),
-// 	}
-
-// 	return &dpp
-// }
 
 func printPage(page notion.Page, w io.Writer) error {
 	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", "page ID", "TITLE", "CREATED TIME", "TAGS")
@@ -203,21 +212,4 @@ func printPage(page notion.Page, w io.Writer) error {
 	// }
 	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", page.ID, title, page.CreatedTime, multiSelect)
 	return nil
-}
-
-// RoundTrip implements http.RoundTripper. It multiplexes the read HTTP response
-// data to an io.Writer for debugging.
-func (t *httpTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	res, err := http.DefaultTransport.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-
-	res.Body = io.NopCloser(io.TeeReader(res.Body, t.w))
-
-	return res, nil
-}
-
-type httpTransport struct {
-	w io.Writer
 }
