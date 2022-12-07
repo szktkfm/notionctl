@@ -3,9 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"text/tabwriter"
+
+	"example.com/notion-go-cli/util"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
@@ -22,6 +23,7 @@ func init() {
 type GetOptions struct {
 	Db   string
 	Page string
+	Wide bool
 }
 
 // newでcmdを返す。new関数の中でadd cmdする
@@ -43,6 +45,7 @@ func newCmdGet() *cobra.Command {
 
 	cmd.Flags().StringVar(&o.Page, "page", "", "page id")
 	cmd.Flags().StringVar(&o.Db, "db", "", "db id")
+	cmd.Flags().BoolVar(&o.Wide, "wide", false, "wide print")
 	return cmd
 }
 
@@ -71,51 +74,12 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 	// TODO: tabwriterを別のpackageにする
 	const padding = 4
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
-	printDatabaseQueryResponce(queryResult, w)
+	util.PrintDatabaseQueryResponce(queryResult, w)
+	// util.NewDatabaseQueryResponcePrinter(queryResult, w).Print()
 	w.Flush()
 	// fmt.Println(queryResult)
 	return nil
 
-}
-
-func printDatabaseQueryResponce(res notion.DatabaseQueryResponse, w io.Writer) error {
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", "page ID", "TITLE", "CREATED TIME", "TAGS")
-	for _, page := range res.Results {
-		// Propertiesから情報を持ってくる処理
-		props := page.Properties
-		// fmt.Printf("%#v", props.(notion.DatabasePageProperties))
-
-		var title string
-		var multiSelect string
-		for k, v := range props.(notion.DatabasePageProperties) {
-			// fmt.Printf("property key: %s", k)
-			if k == "note" {
-				// fmt.Printf("%#v \n", v)
-			}
-
-			// fmt.Println(k)
-			// fmt.Println(v.ID)
-			// pageId := v.ID
-			// fmt.Println(v.Type)
-			switch v.Type {
-			case notion.DBPropTypeTitle:
-				title = fmt.Sprintf("%s", v.Title[0].Text.Content) //pythonにおけるmap的な書き方できないんだろうか?
-				fmt.Printf("title: %#v \n", k)
-			// case notion.DBPropTypeCreatedTime:
-			// 	createdTime := v.CreatedTime
-			case notion.DBPropTypeMultiSelect:
-				multiSelect = fmt.Sprintf("%s", v.MultiSelect)
-			}
-			// fmt.Println(v.Title)
-			// fmt.Println(v.CreatedTime)
-			// fmt.Println("")
-		}
-		// for key := range props {
-		// 	fmt.Println(key)
-		// }
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", page.ID, title, page.CreatedTime, multiSelect)
-	}
-	return nil
 }
 
 func readConfig() {

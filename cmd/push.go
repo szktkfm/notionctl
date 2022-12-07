@@ -15,9 +15,6 @@ import (
 
 func init() {
 	rootCmd.AddCommand(newCmdPush())
-
-	// viper.SetDefault("author", "NAME HERE <EMAIL ADDRESS>"
-	// viper.SetDefault("license", "apache")
 }
 
 type PushOptions struct {
@@ -26,10 +23,6 @@ type PushOptions struct {
 	Description string
 	targetDb    notion.Database
 	FilePath    string
-}
-
-type FileHandler struct {
-	Path string
 }
 
 // newでcmdを返す。new関数の中でadd cmdする
