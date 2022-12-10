@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"text/tabwriter"
 
@@ -175,36 +174,4 @@ func getRitchText(content string) []notion.RichText {
 			},
 		},
 	}
-}
-
-func printPage(page notion.Page, w io.Writer) error {
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", "page ID", "TITLE", "CREATED TIME", "TAGS")
-	// Propertiesから情報を持ってくる処理
-	props := page.Properties
-	// fmt.Printf("%#v", props.(notion.DatabasePageProperties))
-
-	var title string
-	var multiSelect string
-	for _, v := range props.(notion.DatabasePageProperties) {
-		// fmt.Println(k)
-		// fmt.Println(v.ID)
-		// pageId := v.ID
-		// fmt.Println(v.Type)
-		switch v.Type {
-		case notion.DBPropTypeTitle:
-			title = fmt.Sprintf("%s", v.Title[0].Text.Content) //pythonにおけるmap的な書き方できないんだろうか?
-		// case notion.DBPropTypeCreatedTime:
-		// 	createdTime := v.CreatedTime
-		case notion.DBPropTypeMultiSelect:
-			multiSelect = fmt.Sprintf("%s", v.MultiSelect)
-		}
-		// fmt.Println(v.Title)
-		// fmt.Println(v.CreatedTime)
-		// fmt.Println("")
-	}
-	// for key := range props {
-	// 	fmt.Println(key)
-	// }
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", page.ID, title, page.CreatedTime, multiSelect)
-	return nil
 }

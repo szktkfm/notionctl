@@ -73,7 +73,8 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 	// print
 	// TODO: tabwriterを別のpackageにする
 	const padding = 4
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
+	// w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.Debug)
+	w := tabwriter.NewWriter(os.Stdout, 4, 0, padding, ' ', tabwriter.TabIndent)
 	// util.PrintDatabaseQueryResponce(queryResult, w)
 	util.NewDatabaseQueryResponcePrinter(queryResult, w).Print()
 	w.Flush()
