@@ -8,6 +8,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"example.com/notion-go-cli/util"
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -85,7 +86,8 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 	const padding = 4
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
 	// printPage(page, w)
-	fmt.Println(page)
+	// fmt.Printf("%#v\n", page)
+	util.NewCreatePageResponcePrinter(page, w).Print()
 	w.Flush()
 	// fmt.Println(queryResult)
 	return nil

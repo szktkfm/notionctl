@@ -63,6 +63,13 @@ func NewDatabaseQueryResponcePrinter(res notion.DatabaseQueryResponse, w io.Writ
 
 }
 
+func NewCreatePageResponcePrinter(res notion.Page, w io.Writer) *TablePrinter {
+	//fmt.Fprintf(w, "%s\t%s\t%s\n", "page ID", "TITLE", "TAGS")
+	// fmt.Fprintf(w, "%s\t%s\n", "TITLE", "TAGS")
+	return &TablePrinter{table: newTable([]notion.Page{res}), writer: w}
+
+}
+
 // build table method
 // 具体的には、1つのfor loopでRowを生成する
 func PrintPage(pages []notion.Page, w io.Writer) error {
