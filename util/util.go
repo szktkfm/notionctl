@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/dstotijn/go-notion"
 )
@@ -73,45 +74,7 @@ func NewCreatePageResponcePrinter(res notion.Page, w io.Writer) *TablePrinter {
 
 }
 
-// build table method
-// 具体的には、1つのfor loopでRowを生成する
-// func PrintPage(pages []notion.Page, w io.Writer) error {
-// 	table := &Table{}
-// 	rows := []Row{}
-// 	// header := true
-// 	for _, page := range pages {
-// 		props := page.Properties
-// 		// fmt.Printf("%#v", props.(notion.DatabasePageProperties))
-// 		var title string
-// 		var multiSelect string
-// 		row := Row{}
-// 		cells := map[string]string{}
-// 		for k, v := range props.(notion.DatabasePageProperties) {
-// 			// Rowを作っていく
-// 			switch v.Type {
-// 			case notion.DBPropTypeTitle:
-// 				title = fmt.Sprintf("%s", v.Title[0].Text.Content) //pythonにおけるmap的な書き方できないんだろうか?
-// 				// title = fmt.Sprintf("%s", v.Value()) //pythonにおけるmap的な書き方できないんだろうか?
-// 				// if header{//headerをkeyに設定する}
-// 				// cells = append(cells, title)
-// 				cells[k] = title
-// 			case notion.DBPropTypeMultiSelect:
-// 				multiSelect = fmt.Sprintf("%s", v.MultiSelect)
-// 				cells[k] = multiSelect
-// 				// if wide{}
-// 			}
-// 		}
-// 		// row.Cells = cells
-// 		fmt.Fprintf(w, "%s\t%s\t%s\n", page.ID, title, multiSelect)
-// 		rows = append(rows, row)
-// 	}
-// 	table.Rows = rows
-// 	// fmt.Println(table)
-
-// 	return nil
-// }
-
-func titleToString(r []notion.RichText) string {
+func richTextToString(r []notion.RichText) string {
 	if len(r) == 0 {
 		return " "
 	} else {
@@ -135,6 +98,10 @@ func selectOptionToString(so *notion.SelectOptions) string {
 
 }
 
+func createdTimeToAge(ct *time.Time) string {
+	return HumanDuration(time.Now().Sub(*ct))
+}
+
 func newTable(pages []notion.Page) Table {
 	table := Table{}
 	rows := []Row{}
@@ -148,12 +115,11 @@ func newTable(pages []notion.Page) Table {
 			// Rowを作っていく
 			switch v.Type {
 			case notion.DBPropTypeTitle:
-				// TODO: Untitledだとindex out of rangeになる
 				// title = fmt.Sprintf("%s", v.Title[0].Text.Content) //pythonにおけるmap的な書き方できないんだろうか?
 				cells = append(cells, propTypeValue{
 					propType: notion.DBPropTypeTitle,
 					propName: k,
-					value:    fmt.Sprintf("%s", titleToString(v.Title)),
+					value:    fmt.Sprintf("%s", richTextToString(v.Title)),
 				})
 
 			case notion.DBPropTypeMultiSelect:
@@ -172,14 +138,14 @@ func newTable(pages []notion.Page) Table {
 			case notion.DBPropTypeCreatedTime:
 				cells = append(cells, propTypeValue{
 					propType: notion.DBPropTypeCreatedTime,
-					propName: k,
-					value:    fmt.Sprintf("%v", v.CreatedTime), // calcurate age
+					propName: "AGE",
+					value:    fmt.Sprintf("%v", createdTimeToAge(v.CreatedTime)), // calcurate age
 				})
 			case notion.DBPropTypeRichText:
 				cells = append(cells, propTypeValue{
 					propType: notion.DBPropTypeRichText,
 					propName: k,
-					value:    titleToString(v.RichText),
+					value:    richTextToString(v.RichText),
 				})
 			}
 		}
@@ -215,6 +181,10 @@ func (t *TablePrinter) Print() {
 
 		for _, c := range r.Cells {
 			// TODO: string builderを使う！
+			if c.propType == notion.DBPropTypeRichText {
+				output += fmt.Sprintf("%.24s\t", c.value)
+				continue
+			}
 			output += fmt.Sprintf("%s\t", c.value)
 		}
 		output += "\n"
