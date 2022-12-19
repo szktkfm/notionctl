@@ -10,15 +10,16 @@ import (
 	"github.com/dstotijn/go-notion"
 )
 
-func getPos(query notion.DatabasePropertyType) int {
-	var printOrder = []notion.DatabasePropertyType{
-		notion.DBPropTypeTitle,
-		notion.DBPropTypeSelect,
-		notion.DBPropTypeMultiSelect,
-		notion.DBPropTypeCreatedTime,
-		notion.DBPropTypeRichText,
-	}
-	for i, s := range printOrder {
+var printOrderOfDBPropType = []notion.DatabasePropertyType{
+	notion.DBPropTypeTitle,
+	notion.DBPropTypeSelect,
+	notion.DBPropTypeMultiSelect,
+	notion.DBPropTypeCreatedTime,
+	notion.DBPropTypeRichText,
+}
+
+func getIdxOfPrintOrder(query notion.DatabasePropertyType) int {
+	for i, s := range printOrderOfDBPropType {
 		if query == s {
 			return i
 		}
@@ -98,10 +99,6 @@ func selectOptionToString(so *notion.SelectOptions) string {
 
 }
 
-func createdTimeToAge(ct *time.Time) string {
-	return HumanDuration(time.Now().Sub(*ct))
-}
-
 func newTable(pages []notion.Page) Table {
 	table := Table{}
 	rows := []Row{}
@@ -115,7 +112,6 @@ func newTable(pages []notion.Page) Table {
 			// Rowを作っていく
 			switch v.Type {
 			case notion.DBPropTypeTitle:
-				// title = fmt.Sprintf("%s", v.Title[0].Text.Content) //pythonにおけるmap的な書き方できないんだろうか?
 				cells = append(cells, propTypeValue{
 					propType: notion.DBPropTypeTitle,
 					propName: k,
@@ -139,7 +135,7 @@ func newTable(pages []notion.Page) Table {
 				cells = append(cells, propTypeValue{
 					propType: notion.DBPropTypeCreatedTime,
 					propName: "AGE",
-					value:    fmt.Sprintf("%v", createdTimeToAge(v.CreatedTime)), // calcurate age
+					value:    fmt.Sprintf("%v", HumanDuration(time.Now().Sub(*v.CreatedTime))), // calcurate age
 				})
 			case notion.DBPropTypeRichText:
 				cells = append(cells, propTypeValue{
@@ -153,20 +149,19 @@ func newTable(pages []notion.Page) Table {
 		rows = append(rows, row)
 	}
 	table.Rows = rows
-	// fmt.Println(table)
 
 	return table
 }
 
-// cellの文字数を決めてprintしたい。
 func (t *TablePrinter) Print() {
 
 	// TODO: 全角を考慮したcellの幅を計算し、paddingする。
 
 	for i, r := range t.table.Rows {
 		var output string
-		// printする順番をどこかで定義しないといけない
-		sort.Slice(r.Cells, func(i, j int) bool { return getPos(r.Cells[i].propType) < getPos(r.Cells[j].propType) })
+		sort.Slice(r.Cells, func(i, j int) bool {
+			return getIdxOfPrintOrder(r.Cells[i].propType) < getIdxOfPrintOrder(r.Cells[j].propType)
+		})
 
 		// write header
 		if i == 0 {
