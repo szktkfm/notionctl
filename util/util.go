@@ -37,13 +37,6 @@ type Row struct {
 	Cells []propTypeValue
 }
 
-// type Row struct {
-// 	Cells map[string]string
-// }
-
-//	type TableHeader struct {
-//		Header []string
-//	}
 type Table struct {
 	Rows []Row
 }
@@ -53,24 +46,12 @@ type TablePrinter struct {
 	writer io.Writer
 }
 
-// tablePrinterを生成
-// func PrintDatabaseQueryResponce(res notion.DatabaseQueryResponse, w io.Writer) error {
-// 	fmt.Fprintf(w, "%s\t%s\t%s\n", "page ID", "TITLE", "TAGS")
-// 	PrintPage(res.Results, w)
-
-// 	return nil
-// }
-
 func NewDatabaseQueryResponcePrinter(res notion.DatabaseQueryResponse, w io.Writer) *TablePrinter {
-	//fmt.Fprintf(w, "%s\t%s\t%s\n", "page ID", "TITLE", "TAGS")
-	// fmt.Fprintf(w, "%s\t%s\n", "TITLE", "TAGS")
 	return &TablePrinter{table: newTable(res.Results), writer: w}
 
 }
 
 func NewCreatePageResponcePrinter(res notion.Page, w io.Writer) *TablePrinter {
-	//fmt.Fprintf(w, "%s\t%s\t%s\n", "page ID", "TITLE", "TAGS")
-	// fmt.Fprintf(w, "%s\t%s\n", "TITLE", "TAGS")
 	return &TablePrinter{table: newTable([]notion.Page{res}), writer: w}
 
 }
