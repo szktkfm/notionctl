@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"text/tabwriter"
 
 	"example.com/notion-go-cli/util"
+	"mkuznets.com/go/tabwriter"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"

@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/dstotijn/go-notion"
+	"github.com/mattn/go-runewidth"
 )
 
 var printOrderOfDBPropType = []notion.DatabasePropertyType{
 	notion.DBPropTypeTitle,
+	notion.DBPropTypeCreatedTime,
 	notion.DBPropTypeSelect,
 	notion.DBPropTypeMultiSelect,
-	notion.DBPropTypeCreatedTime,
 	notion.DBPropTypeRichText,
 }
 
@@ -58,13 +59,16 @@ func NewCreatePageResponcePrinter(res notion.Page, w io.Writer) *TablePrinter {
 
 func richTextToString(r []notion.RichText) string {
 	if len(r) == 0 {
-		return " "
+		return "-"
 	} else {
 		return r[0].Text.Content
 	}
 }
 
 func selectMultiOptionsToStrig(so []notion.SelectOptions) string {
+	if len(so) == 0 {
+		return "-"
+	}
 	result := ""
 	for _, v := range so {
 		result += v.Name + ","
@@ -74,7 +78,7 @@ func selectMultiOptionsToStrig(so []notion.SelectOptions) string {
 
 func selectOptionToString(so *notion.SelectOptions) string {
 	if so == nil {
-		return " "
+		return "-"
 	}
 	return so.Name
 
@@ -136,8 +140,6 @@ func newTable(pages []notion.Page) Table {
 
 func (t *TablePrinter) Print() {
 
-	// TODO: 全角を考慮したcellの幅を計算し、paddingする。
-
 	for i, r := range t.table.Rows {
 		var output string
 		sort.Slice(r.Cells, func(i, j int) bool {
@@ -148,7 +150,7 @@ func (t *TablePrinter) Print() {
 		if i == 0 {
 			for _, c := range r.Cells {
 				// TODO: string builderを使う！
-				output += fmt.Sprintf("%s\t", c.propName)
+				output += fmt.Sprintf("%s\t", runewidth.Truncate(c.propName, 24, "..."))
 			}
 			output += "\n"
 			fmt.Fprint(t.writer, strings.ToUpper(output))
@@ -158,10 +160,10 @@ func (t *TablePrinter) Print() {
 		for _, c := range r.Cells {
 			// TODO: string builderを使う！
 			if c.propType == notion.DBPropTypeRichText {
-				output += fmt.Sprintf("%.24s\t", c.value)
+				output += fmt.Sprintf("%.24s\t", runewidth.Truncate(c.value, 36, "..."))
 				continue
 			}
-			output += fmt.Sprintf("%s\t", c.value)
+			output += fmt.Sprintf("%s\t", runewidth.Truncate(c.value, 24, "..."))
 		}
 		output += "\n"
 		fmt.Fprint(t.writer, output)
