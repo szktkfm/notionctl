@@ -163,7 +163,7 @@ func (t *TablePrinter) Print() {
 				output += fmt.Sprintf("%.24s\t", runewidth.Truncate(c.value, 36, "..."))
 				continue
 			}
-			output += fmt.Sprintf("%s\t", runewidth.Truncate(c.value, 24, "..."))
+			output += fmt.Sprintf("%s\t", runewidth.Truncate(c.value, 36, "..."))
 		}
 		output += "\n"
 		fmt.Fprint(t.writer, output)
