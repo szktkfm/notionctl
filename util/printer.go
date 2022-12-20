@@ -11,23 +11,6 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-var printOrderOfDBPropType = []notion.DatabasePropertyType{
-	notion.DBPropTypeTitle,
-	notion.DBPropTypeCreatedTime,
-	notion.DBPropTypeSelect,
-	notion.DBPropTypeMultiSelect,
-	notion.DBPropTypeRichText,
-}
-
-func getIdxOfPrintOrder(query notion.DatabasePropertyType) int {
-	for i, s := range printOrderOfDBPropType {
-		if query == s {
-			return i
-		}
-	}
-	return -1
-}
-
 type propTypeValue struct {
 	propType notion.DatabasePropertyType
 	propName string
@@ -45,6 +28,23 @@ type Table struct {
 type TablePrinter struct {
 	table  Table
 	writer io.Writer
+}
+
+var printOrderOfDBPropType = []notion.DatabasePropertyType{
+	notion.DBPropTypeTitle,
+	notion.DBPropTypeCreatedTime,
+	notion.DBPropTypeSelect,
+	notion.DBPropTypeMultiSelect,
+	notion.DBPropTypeRichText,
+}
+
+func getIdxOfPrintOrder(query notion.DatabasePropertyType) int {
+	for i, s := range printOrderOfDBPropType {
+		if query == s {
+			return i
+		}
+	}
+	return -1
 }
 
 func NewDatabaseQueryResponcePrinter(res notion.DatabaseQueryResponse, w io.Writer) *TablePrinter {
