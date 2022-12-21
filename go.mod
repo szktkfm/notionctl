@@ -4,8 +4,11 @@ go 1.19
 
 require (
 	github.com/dstotijn/go-notion v0.9.0
+	github.com/google/go-cmp v0.5.9
+	github.com/mattn/go-runewidth v0.0.14
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
+	mkuznets.com/go/tabwriter v0.1.2
 )
 
 require (
@@ -13,7 +16,6 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
-	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
@@ -28,5 +30,4 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	mkuznets.com/go/tabwriter v0.1.2 // indirect
 )
