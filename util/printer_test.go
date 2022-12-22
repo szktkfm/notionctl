@@ -315,7 +315,7 @@ func TestTablePrinterPrint(t *testing.T) {
 		want  string
 	}{
 		{
-			name: "test",
+			name: "test full column",
 			table: Table{
 				Rows: []Row{
 					{
