@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -33,7 +34,7 @@ func TestNewTable(t *testing.T) {
 		want Table
 	}{
 		{
-			name: "test",
+			name: "new table test",
 			arg: []notion.Page{
 				{
 					ID: "7c6b1c95-de50-45ca-94e6-af1d9fd295ab",
@@ -301,6 +302,65 @@ func TestNewTable(t *testing.T) {
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("Table value is mismatch : %s\n", diff)
 
+			}
+		})
+	}
+}
+
+func TestTablePrinterPrint(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		table Table
+		want  string
+	}{
+		{
+			name: "test",
+			table: Table{
+				Rows: []Row{
+					{
+						Cells: []propTypeValue{
+							{
+								propType: notion.DBPropTypeTitle,
+								propName: "Name",
+								value:    "Foobar",
+							},
+							{
+								propType: "created_time",
+								propName: "AGE",
+								value:    "575d",
+							},
+							{
+								propType: notion.DBPropTypeRichText,
+								propName: "Description",
+								value:    "Foobar",
+							},
+							{
+								propType: notion.DBPropTypeSelect,
+								propName: "Food group",
+								value:    "🥦Vegetable",
+							},
+							{
+								propType: notion.DBPropTypeMultiSelect,
+								propName: "tags",
+								value:    "math,history,",
+							},
+						},
+					},
+				},
+			},
+			want: "NAME\tAGE\tFOOD GROUP\tTAGS\tDESCRIPTION\t\nFoobar\t575d\t🥦Vegetable\tmath,history,\tFoobar\t\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := &bytes.Buffer{}
+			printer := &TablePrinter{table: tt.table, writer: buf}
+			printer.Print()
+			got := buf.String()
+
+			if tt.want != got {
+				t.Errorf("print value is mismatch. want: %s, got: %s", tt.want, got)
 			}
 		})
 	}
