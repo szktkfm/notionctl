@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	"example.com/notion-go-cli/util"
@@ -14,21 +16,27 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(newCmdGet())
+	rootCmd.AddCommand(newCmdGet(&GetOptions{}, os.Stdout))
 
 	// viper.SetDefault("author", "NAME HERE <EMAIL ADDRESS>"
 	// viper.SetDefault("license", "apache")
 }
 
 type GetOptions struct {
-	Db   string
+	DB   string
 	Page string
 	Wide bool
+	Out  io.Writer
+}
+
+type utilFactory struct {
+	client http.Client
 }
 
 // newでcmdを返す。new関数の中でadd cmdする
-func newCmdGet() *cobra.Command {
-	o := &GetOptions{}
+func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
+	// option := &GetOptions{Out: writer}
+	o.Out = writer
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "config on .notion-go",
@@ -43,17 +51,15 @@ func newCmdGet() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&o.Page, "page", "", "page id")
-	cmd.Flags().StringVar(&o.Db, "db", "", "db id")
-	cmd.Flags().BoolVar(&o.Wide, "wide", false, "wide print")
+	cmd.Flags().StringVar(&o.Page, "page", o.Page, "page id") //このdefault値を引数で渡したoptionの値にする
+	cmd.Flags().StringVar(&o.DB, "db", o.DB, "db id")
+	cmd.Flags().BoolVar(&o.Wide, "wide", o.Wide, "wide print")
 	return cmd
 }
 
 func (o *GetOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.Db = viper.GetString("db") // ToDo: db引数の値を優先する。でなければviperで読み取る。
+	o.DB = viper.GetString("db") // ToDo: db引数の値を優先する。でなければviperで読み取る。
 	// viperをつかってconfigから読み取る(configから読み取らずviper packageのmethodをそのまま使ってしまうと、singletonみたいになって、実行順序よって結果が変わるかも)
-	o.Page, _ = cmd.Flags().GetString("page")
-
 	return nil
 }
 
@@ -65,7 +71,7 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	client := notion.NewClient(getSecret())
-	queryResult, err := client.QueryDatabase(context.Background(), o.Db, nil)
+	queryResult, err := client.QueryDatabase(context.Background(), o.DB, nil)
 
 	if err != nil {
 		return err
@@ -74,17 +80,13 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 	// TODO: tabwriterを別のpackageにする
 	const padding = 4
 	// w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.Debug)
-	w := tabwriter.NewWriter(os.Stdout, 4, 0, padding, ' ', tabwriter.TabIndent)
+	w := tabwriter.NewWriter(o.Out, 4, 0, padding, ' ', tabwriter.TabIndent)
 	// util.PrintDatabaseQueryResponce(queryResult, w)
 	util.NewDatabaseQueryResponcePrinter(queryResult, w).Print()
 	w.Flush()
 	// fmt.Println(queryResult)
 	return nil
 
-}
-
-func readConfig() {
-	fmt.Println(viper.GetString("secret"))
 }
 
 func getSecret() string {
