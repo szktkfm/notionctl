@@ -25,6 +25,7 @@ type PushOptions struct {
 	targetDB    notion.Database
 	FilePath    string
 	Out         io.Writer
+	In          io.Reader
 }
 
 // newでcmdを返す。new関数の中でadd cmdする
@@ -55,6 +56,13 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.DB = viper.GetString("db")
 	client := notion.NewClient(getSecret())
 
+	// --file - のとき stdinから読み込む
+	if o.FilePath != "-" {
+		o.In, _ = os.Open(o.FilePath)
+	} else {
+		o.In = cmd.InOrStdin()
+	}
+
 	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
 
 	return nil
@@ -64,6 +72,7 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 	fmt.Println(args)
 
 	client := notion.NewClient(getSecret())
+
 	params := o.newCreatePageParams()
 
 	page, err := client.CreatePage(context.Background(), params)
@@ -107,8 +116,8 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 }
 
 func (o *PushOptions) buildBlocksFromFile() []notion.Block {
-	fp, _ := os.Open(o.FilePath)
-	scanner := bufio.NewScanner(fp)
+	scanner := bufio.NewScanner(o.In)
+
 	var blocks []notion.Block
 	for scanner.Scan() {
 		blocks = append(blocks,
