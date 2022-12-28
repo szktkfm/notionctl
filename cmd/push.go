@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"text/tabwriter"
 
@@ -14,20 +15,21 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(newCmdPush())
+	rootCmd.AddCommand(newCmdPush(&PushOptions{}, os.Stdout))
 }
 
 type PushOptions struct {
-	Db          string
+	DB          string
 	Title       string
 	Description string
-	targetDb    notion.Database
+	targetDB    notion.Database
 	FilePath    string
+	Out         io.Writer
 }
 
 // newでcmdを返す。new関数の中でadd cmdする
-func newCmdPush() *cobra.Command {
-	o := &PushOptions{}
+func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
+	// o := &PushOptions{}
 	cmd := &cobra.Command{
 		Use:   "push",
 		Short: "push text",
@@ -42,24 +44,22 @@ func newCmdPush() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&o.Db, "db", "", "db id")
-	cmd.Flags().StringVar(&o.Title, "title", "", "title string")
-	cmd.Flags().StringVar(&o.Description, "description", "", "description string")
-	cmd.Flags().StringVarP(&o.FilePath, "file", "f", "", "file path")
+	// cmd.Flags().StringVar(&o.Db, "db", "", "db id")
+	cmd.Flags().StringVar(&o.Title, "title", o.Title, "title string")
+	cmd.Flags().StringVar(&o.Description, "description", o.Description, "description string")
+	cmd.Flags().StringVarP(&o.FilePath, "file", "f", o.FilePath, "file path")
 	return cmd
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.Db = viper.GetString("db") // ToDo: db引数の値を優先する。でなければviperで読み取る
+	o.DB = viper.GetString("db") // ToDo: 面倒だからenv variableで読みだそうかな
 	client := notion.NewClient(getSecret())
 
 	// 一回dbを情報をgetしてきて、そこからparameterをbuildする。
-	o.targetDb, _ = client.FindDatabaseByID(context.Background(), o.Db)
+	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
 	// if err != nil {
 	// 	return err
 	// }
-
-	fmt.Println(o.targetDb.ID)
 
 	return nil
 }
@@ -96,7 +96,7 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 	dbPageProp := make(notion.DatabasePageProperties)
 
-	for k, dp := range o.targetDb.Properties {
+	for k, dp := range o.targetDB.Properties {
 		// fmt.Printf("properties: %#v\n", k)
 		// fmt.Printf("Properties value: %#v\n", dp)
 		switch dp.Type {
@@ -142,7 +142,7 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 	// }
 	return notion.CreatePageParams{
 		ParentType:             notion.ParentTypeDatabase,
-		ParentID:               o.Db,
+		ParentID:               o.DB,
 		DatabasePageProperties: &dbPageProp,
 		Children:               convert(scanner),
 	}

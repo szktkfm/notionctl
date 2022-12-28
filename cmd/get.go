@@ -52,13 +52,13 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&o.Page, "page", o.Page, "page id") //このdefault値を引数で渡したoptionの値にする
-	cmd.Flags().StringVar(&o.DB, "db", o.DB, "db id")
+	// cmd.Flags().StringVar(&o.DB, "db", o.DB, "db id")
 	cmd.Flags().BoolVar(&o.Wide, "wide", o.Wide, "wide print")
 	return cmd
 }
 
 func (o *GetOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = viper.GetString("db") // ToDo: db引数の値を優先する。でなければviperで読み取る。
+	o.DB = viper.GetString("db") // ToDo: 面倒だからenv variableから読みだそう
 	// viperをつかってconfigから読み取る(configから読み取らずviper packageのmethodをそのまま使ってしまうと、singletonみたいになって、実行順序よって結果が変わるかも)
 	return nil
 }
@@ -76,11 +76,8 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// print
-	// TODO: tabwriterを別のpackageにする
-	const padding = 4
 	// w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.Debug)
-	w := tabwriter.NewWriter(o.Out, 4, 0, padding, ' ', tabwriter.TabIndent)
+	w := tabwriter.NewWriter(o.Out, 4, 0, 4, ' ', tabwriter.TabIndent)
 	// util.PrintDatabaseQueryResponce(queryResult, w)
 	util.NewDatabaseQueryResponcePrinter(queryResult, w).Print()
 	w.Flush()

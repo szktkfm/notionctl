@@ -1,15 +1,11 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
-
-	"github.com/jarcoal/httpmock"
-	"mkuznets.com/go/tabwriter"
 )
 
-func TestGetCmdRun(t *testing.T) {
+func TestPushCmdRun(t *testing.T) {
 
 	tests := []struct {
 		name      string
@@ -30,28 +26,6 @@ func TestGetCmdRun(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			httpmock.Activate()
-			defer httpmock.DeactivateAndReset()
-			httpmock.RegisterResponder("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", tt.option.DB),
-				httpmock.NewStringResponder(200, tt.queryMock))
-
-			buf := new(bytes.Buffer)
-			tt.option.Out = buf
-			cmd := newCmdGet(tt.option, buf)
-
-			tt.option.Run(cmd, []string{"test"})
-			got := buf.String()
-
-			wantBuf := new(bytes.Buffer)
-			wantWriter := tabwriter.NewWriter(wantBuf, 4, 0, 4, ' ', tabwriter.TabIndent)
-			fmt.Fprint(wantWriter, tt.want)
-			wantWriter.Flush()
-			printedWant := wantBuf.String()
-
-			if printedWant != got {
-				t.Errorf("print value is mismatch. want: %s, got: %s", printedWant, got)
-			}
-		})
+		fmt.Println(tt)
 	}
 }
