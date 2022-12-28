@@ -98,18 +98,17 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 		}
 	}
 
-	fp, _ := os.Open(o.FilePath)
-	scanner := bufio.NewScanner(fp)
-
 	return notion.CreatePageParams{
 		ParentType:             notion.ParentTypeDatabase,
 		ParentID:               o.DB,
 		DatabasePageProperties: &dbPageProp,
-		Children:               convert(scanner),
+		Children:               o.buildBlocksFromFile(),
 	}
 }
 
-func convert(scanner *bufio.Scanner) []notion.Block {
+func (o *PushOptions) buildBlocksFromFile() []notion.Block {
+	fp, _ := os.Open(o.FilePath)
+	scanner := bufio.NewScanner(fp)
 	var blocks []notion.Block
 	for scanner.Scan() {
 		blocks = append(blocks,
