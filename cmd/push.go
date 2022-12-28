@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"text/tabwriter"
 
 	"example.com/notion-go-cli/util"
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"mkuznets.com/go/tabwriter"
 )
 
 func init() {
@@ -52,14 +52,10 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = viper.GetString("db") // ToDo: 面倒だからenv variableで読みだそうかな
+	o.DB = viper.GetString("db")
 	client := notion.NewClient(getSecret())
 
-	// 一回dbを情報をgetしてきて、そこからparameterをbuildする。
 	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
-	// if err != nil {
-	// 	return err
-	// }
 
 	return nil
 }
@@ -68,27 +64,18 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 	fmt.Println(args)
 
 	client := notion.NewClient(getSecret())
-	params := o.newCreatePageParams() //ToDo:  param構造体を作る
-	// param.build みたいな感じでparameterをbuildして
+	params := o.newCreatePageParams()
 
-	// fmt.Printf("params: %#v\n", params)
 	page, err := client.CreatePage(context.Background(), params)
-	// fmt.Printf("bufer: %s", buf)
 
 	if err != nil {
 		fmt.Println("error")
 		fmt.Println(err)
 		return err
 	}
-	// print
-	// TODO: tabwriterを別のpackageにする
-	const padding = 4
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
-	// printPage(page, w)
-	// fmt.Printf("%#v\n", page)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
 	util.NewCreatePageResponcePrinter(page, w).Print()
 	w.Flush()
-	// fmt.Println(queryResult)
 	return nil
 
 }
@@ -102,44 +89,18 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 		switch dp.Type {
 		case notion.DBPropTypeTitle:
 			dbPageProp[k] = notion.DatabasePageProperty{
-				Title: getRitchText(o.Title),
+				Title: stringToRichTexts(o.Title),
 			}
 		case notion.DBPropTypeRichText:
 			dbPageProp[k] = notion.DatabasePageProperty{
-				RichText: getRitchText(o.Description),
+				RichText: stringToRichTexts(o.Description),
 			}
 		}
 	}
 
 	fp, _ := os.Open(o.FilePath)
-	// if err != nil {
-	// 	return err
-	// }
 	scanner := bufio.NewScanner(fp)
 
-	// children :=
-
-	// return notion.CreatePageParams{
-	// 	ParentType:             notion.ParentTypeDatabase,
-	// 	ParentID:               o.Db,
-	// 	DatabasePageProperties: &dbPageProp,
-	// 	Children: []notion.Block{
-	// 		notion.Heading1Block{
-	// 			RichText: []notion.RichText{
-	// 				{
-	// 					Text: &notion.Text{
-	// 						Content: "testtest",
-	// 					},
-	// 				},
-	// 				{
-	// 					Text: &notion.Text{
-	// 						Content: "2行目",
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
 	return notion.CreatePageParams{
 		ParentType:             notion.ParentTypeDatabase,
 		ParentID:               o.DB,
@@ -166,7 +127,7 @@ func convert(scanner *bufio.Scanner) []notion.Block {
 	return blocks
 }
 
-func getRitchText(content string) []notion.RichText {
+func stringToRichTexts(content string) []notion.RichText {
 	return []notion.RichText{
 		{
 			Text: &notion.Text{
