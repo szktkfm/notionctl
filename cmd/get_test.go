@@ -43,15 +43,6 @@ func TestGetCmdRun(t *testing.T) {
 			tt.option.Run(cmd, []string{"test"})
 			got := buf.String()
 
-			// wantBuf := new(bytes.Buffer)
-			// wantWriter := tabwriter.NewWriter(wantBuf, 4, 0, 4, ' ', tabwriter.TabIndent)
-			// fmt.Fprint(wantWriter, tt.want)
-			// wantWriter.Flush()
-			// printedWant := wantBuf.String()
-
-			// if printedWant != got {
-			// 	t.Errorf("print value is mismatch. want: %s, got: %s", printedWant, got)
-			// }
 			r := regexp.MustCompile(tt.want)
 			if !r.MatchString(got) {
 				t.Errorf("print value is mismatch. want: %s, got: %s", tt.want, got)
