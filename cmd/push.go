@@ -63,7 +63,9 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 		o.In = cmd.InOrStdin()
 	}
 
+	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!")
 	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
+	fmt.Printf("%#v\n", o.targetDB)
 
 	return nil
 }
@@ -72,9 +74,7 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 	fmt.Println(args)
 
 	client := notion.NewClient(getSecret())
-
 	params := o.newCreatePageParams()
-
 	page, err := client.CreatePage(context.Background(), params)
 
 	if err != nil {
@@ -111,11 +111,11 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 		ParentType:             notion.ParentTypeDatabase,
 		ParentID:               o.DB,
 		DatabasePageProperties: &dbPageProp,
-		Children:               o.buildBlocksFromFile(),
+		Children:               o.buildBlocksFromInput(),
 	}
 }
 
-func (o *PushOptions) buildBlocksFromFile() []notion.Block {
+func (o *PushOptions) buildBlocksFromInput() []notion.Block {
 	scanner := bufio.NewScanner(o.In)
 
 	var blocks []notion.Block
