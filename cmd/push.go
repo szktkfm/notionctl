@@ -7,11 +7,9 @@ import (
 	"io"
 	"os"
 
-	"example.com/notion-go-cli/util"
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"mkuznets.com/go/tabwriter"
 )
 
 func init() {
@@ -35,11 +33,7 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 		Use:   "push",
 		Short: "push text",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			//debug
-			// fmt.Println(getSecret())
-			// flagの穴埋め
 			o.Complete(cmd, args)
-			// run
 			o.Run(cmd, args)
 			return nil
 		},
@@ -63,28 +57,26 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 		o.In = cmd.InOrStdin()
 	}
 
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!")
 	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
-	fmt.Printf("%#v\n", o.targetDB)
 
 	return nil
 }
 
 func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
-	fmt.Println(args)
 
 	client := notion.NewClient(getSecret())
 	params := o.newCreatePageParams()
-	page, err := client.CreatePage(context.Background(), params)
+	_, err := client.CreatePage(context.Background(), params)
 
 	if err != nil {
-		fmt.Println("error")
-		fmt.Println(err)
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
-	util.NewCreatePageResponcePrinter(page, w).Print()
-	w.Flush()
+
+	// w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
+	// util.NewCreatePageResponcePrinter(page, w).Print()
+	// w.Flush()
+	fmt.Printf("%s is created\n", o.Title)
+
 	return nil
 
 }
@@ -93,8 +85,6 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 	dbPageProp := make(notion.DatabasePageProperties)
 
 	for k, dp := range o.targetDB.Properties {
-		// fmt.Printf("properties: %#v\n", k)
-		// fmt.Printf("Properties value: %#v\n", dp)
 		switch dp.Type {
 		case notion.DBPropTypeTitle:
 			dbPageProp[k] = notion.DatabasePageProperty{
