@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"os"
 
-	"example.com/notion-go-cli/util"
+	"github.com/notionctl/util"
 	"mkuznets.com/go/tabwriter"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func init() {
@@ -39,7 +38,7 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 	o.Out = writer
 	cmd := &cobra.Command{
 		Use:   "get",
-		Short: "config on .notion-go",
+		Short: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//debug
 			// fmt.Println(getSecret())
@@ -51,14 +50,15 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&o.Page, "page", o.Page, "page id") //このdefault値を引数で渡したoptionの値にする
+	// cmd.Flags().StringVar(&o.Page, "page", o.Page, "page id") //このdefault値を引数で渡したoptionの値にする
 	// cmd.Flags().StringVar(&o.DB, "db", o.DB, "db id")
 	cmd.Flags().BoolVar(&o.Wide, "wide", o.Wide, "wide print")
 	return cmd
 }
 
 func (o *GetOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = viper.GetString("db") // ToDo: 面倒だからenv variableから読みだそう
+	// o.DB = viper.GetString("db") // ToDo: 面倒だからenv variableから読みだそう
+	o.DB = os.Getenv("NOTION_DATABASE") // ToDo: 面倒だからenv variableから読みだそう
 	// viperをつかってconfigから読み取る(configから読み取らずviper packageのmethodをそのまま使ってしまうと、singletonみたいになって、実行順序よって結果が変わるかも)
 	return nil
 }
@@ -87,5 +87,7 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 }
 
 func getSecret() string {
-	return viper.GetString("secret")
+	// TODO: 環境変数から読み取ろう。
+	// return viper.GetString("secret")
+	return os.Getenv("NOTION_API_KEY")
 }

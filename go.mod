@@ -1,4 +1,4 @@
-module example.com/notion-go-cli
+module github.com/notionctl
 
 go 1.19
 

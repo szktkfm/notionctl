@@ -9,7 +9,6 @@ import (
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func init() {
@@ -47,7 +46,8 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = viper.GetString("db")
+	// o.DB = viper.GetString("db")
+	o.DB = os.Getenv("NOTION_DATABASE") // ToDo: 面倒だからenv variableから読みだそう
 	client := notion.NewClient(getSecret())
 
 	// --file - のとき stdinから読み込む
