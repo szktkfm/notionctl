@@ -37,7 +37,6 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 		},
 	}
 
-	// cmd.Flags().StringVar(&o.Db, "db", "", "db id")
 	cmd.Flags().StringVar(&o.Title, "title", o.Title, "title string")
 	cmd.Flags().StringVar(&o.Description, "description", o.Description, "description string")
 	cmd.Flags().StringVarP(&o.FilePath, "file", "f", o.FilePath, "file path")
@@ -45,10 +44,10 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = os.Getenv("NOTION_DATABASE") // ToDo: 面倒だからenv variableから読みだそう
+	o.DB = os.Getenv("NOTION_DATABASE")
 	client := notion.NewClient(getSecret())
 
-	// --file - のとき stdinから読み込む
+	// If --file option is set to -, read from stdin
 	if o.FilePath != "-" {
 		o.In, _ = os.Open(o.FilePath)
 	} else {
@@ -70,7 +69,7 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("%s is created\n", o.Title)
+	fmt.Fprintf(o.Out, "%s is created\n", o.Title)
 
 	return nil
 }
