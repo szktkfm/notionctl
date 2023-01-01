@@ -69,11 +69,11 @@ func selectMultiOptionsToStrig(so []notion.SelectOptions) string {
 	if len(so) == 0 {
 		return "-"
 	}
-	result := ""
+	var result []string
 	for _, v := range so {
-		result += v.Name + ","
+		result = append(result, v.Name)
 	}
-	return result
+	return strings.Join(result, ",")
 }
 
 func selectOptionToString(so *notion.SelectOptions) string {
@@ -149,7 +149,7 @@ func (t *TablePrinter) Print() {
 		// write header
 		if i == 0 {
 			for _, c := range r.Cells {
-				// TODO: string builderを使う！
+				// TODO: use string builder
 				output += fmt.Sprintf("%s\t", runewidth.Truncate(c.propName, 24, "..."))
 			}
 			output += "\n"
@@ -158,7 +158,7 @@ func (t *TablePrinter) Print() {
 		}
 
 		for _, c := range r.Cells {
-			// TODO: string builderを使う！
+			// TODO: use string builder
 			if c.propType == notion.DBPropTypeRichText {
 				output += fmt.Sprintf("%.24s\t", runewidth.Truncate(c.value, 36, "..."))
 				continue

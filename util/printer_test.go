@@ -279,7 +279,7 @@ func TestNewTable(t *testing.T) {
 							{
 								propType: notion.DBPropTypeMultiSelect,
 								propName: "tags",
-								value:    "math,history,",
+								value:    "math,history",
 							},
 						},
 					},
@@ -343,13 +343,13 @@ func TestTablePrinterPrint(t *testing.T) {
 							{
 								propType: notion.DBPropTypeMultiSelect,
 								propName: "tags",
-								value:    "math,history,",
+								value:    "math,history",
 							},
 						},
 					},
 				},
 			},
-			want: "NAME\tAGE\tFOOD GROUP\tTAGS\tDESCRIPTION\t\nFoobar\t575d\t🥦Vegetable\tmath,history,\tFoobar\t\n",
+			want: "NAME\tAGE\tFOOD GROUP\tTAGS\tDESCRIPTION\t\nFoobar\t575d\t🥦Vegetable\tmath,history\tFoobar\t\n",
 		},
 	}
 	for _, tt := range tests {
