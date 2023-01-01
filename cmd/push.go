@@ -31,8 +31,14 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 		Use:   "push",
 		Short: "push text",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			o.Complete(cmd, args)
-			o.Run(cmd, args)
+			err := o.Complete(cmd, args)
+			if err != nil {
+				return err
+			}
+			err = o.Run(cmd, args)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}
@@ -47,6 +53,10 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 	o.DB = os.Getenv("NOTION_DATABASE")
 	client := notion.NewClient(getSecret())
 
+	if len(o.Title) == 0 {
+		return fmt.Errorf("required flag(s) title not set")
+	}
+
 	// If --file option is set to -, read from stdin
 	if o.FilePath != "-" {
 		o.In, _ = os.Open(o.FilePath)
@@ -55,7 +65,6 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 	}
 
 	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
-
 	return nil
 }
 

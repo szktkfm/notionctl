@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/dstotijn/go-notion"
@@ -67,6 +69,45 @@ func TestNewCreatePageParam(t *testing.T) {
 
 		})
 	}
+}
+
+func TestPushOptionComplete(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		wantErrMsg string
+	}{
+		{
+			name:       "test data",
+			wantErrMsg: "required flag(s) title not set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := newCmdPush(&PushOptions{}, os.Stdout)
+			pushOptions := newTestPushErrOptions()
+			gotErr := pushOptions.Complete(cmd, []string{"test"})
+			gotErrStr := fmt.Sprint(gotErr)
+
+			if tt.wantErrMsg != gotErrStr {
+				t.Errorf("value is mismatch. want: %s, got: %s", tt.wantErrMsg, gotErrStr)
+			}
+		})
+	}
+}
+
+func newTestPushErrOptions() *PushOptions {
+	buf := new(bytes.Buffer)
+	buf.Write([]byte("paragraph line"))
+
+	return &PushOptions{
+		Title:       "",
+		Description: "test description",
+		In:          buf,
+		targetDB:    notion.Database{},
+	}
+
 }
 
 func newTestPushOptions() *PushOptions {
