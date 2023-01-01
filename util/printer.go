@@ -9,6 +9,7 @@ import (
 
 	"github.com/dstotijn/go-notion"
 	"github.com/mattn/go-runewidth"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 type propTypeValue struct {
@@ -119,7 +120,7 @@ func newTable(pages []notion.Page) Table {
 				cells = append(cells, propTypeValue{
 					propType: notion.DBPropTypeCreatedTime,
 					propName: "AGE",
-					value:    fmt.Sprintf("%v", HumanDuration(time.Now().Sub(*v.CreatedTime))), // calcurate age
+					value:    fmt.Sprintf("%v", duration.HumanDuration(time.Now().Sub(*v.CreatedTime))), // calcurate age
 				})
 			case notion.DBPropTypeRichText:
 				cells = append(cells, propTypeValue{

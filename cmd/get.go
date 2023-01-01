@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/notionctl/util"
+	"github.com/szktkfm/notionctl/util"
 	"mkuznets.com/go/tabwriter"
 
 	"github.com/dstotijn/go-notion"
