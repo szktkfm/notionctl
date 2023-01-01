@@ -41,7 +41,7 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *GetOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = os.Getenv("NOTION_DATABASE") // ToDo: 面倒だからenv variableから読みだそう
+	o.DB = os.Getenv("NOTION_DATABASE")
 	return nil
 }
 

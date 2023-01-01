@@ -94,7 +94,6 @@ func newTable(pages []notion.Page) Table {
 		row := Row{}
 		cells := []propTypeValue{}
 		for k, v := range props.(notion.DatabasePageProperties) {
-			// Rowを作っていく
 			switch v.Type {
 			case notion.DBPropTypeTitle:
 				cells = append(cells, propTypeValue{
