@@ -25,9 +25,8 @@ type PushOptions struct {
 	In          io.Reader
 }
 
-// newでcmdを返す。new関数の中でadd cmdする
 func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
-	// o := &PushOptions{}
+	o.Out = writer
 	cmd := &cobra.Command{
 		Use:   "push",
 		Short: "push text",
@@ -46,7 +45,6 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
-	// o.DB = viper.GetString("db")
 	o.DB = os.Getenv("NOTION_DATABASE") // ToDo: 面倒だからenv variableから読みだそう
 	client := notion.NewClient(getSecret())
 
@@ -72,13 +70,9 @@ func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
-	// util.NewCreatePageResponcePrinter(page, w).Print()
-	// w.Flush()
 	fmt.Printf("%s is created\n", o.Title)
 
 	return nil
-
 }
 
 func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
