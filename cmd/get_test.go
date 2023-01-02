@@ -9,6 +9,48 @@ import (
 	"github.com/jarcoal/httpmock"
 )
 
+func TestGetCmdRunErr(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		option     *GetOptions
+		queryMock  string
+		wantErrMsg string
+	}{
+		{
+			name: "test fot not setting env vars",
+			option: &GetOptions{
+				DB:   "hogedb",
+				Page: "",
+				Wide: false,
+			},
+			// TODO: define []notion.Page and unmashal it
+			wantErrMsg: "required env variables NOTION_API_KEY not set",
+		},
+	}
+	for _, tt := range tests {
+		// t.Setenv("NOTION_API_KEY", "testkey")
+		// t.Setenv("NOTION_DATABASE", "testdbid")
+
+		t.Run(tt.name, func(t *testing.T) {
+			httpmock.Activate()
+			defer httpmock.DeactivateAndReset()
+			httpmock.RegisterResponder("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", tt.option.DB),
+				httpmock.NewStringResponder(200, tt.queryMock))
+
+			buf := new(bytes.Buffer)
+			tt.option.Out = buf
+			cmd := newCmdGet(tt.option, buf)
+
+			gotErr := tt.option.Run(cmd, []string{"test"})
+
+			if tt.wantErrMsg != fmt.Sprint(gotErr) {
+				t.Errorf("value is mismatch. want: %s, got: %s", tt.wantErrMsg, gotErr)
+			}
+		})
+	}
+}
+
 func TestGetCmdRun(t *testing.T) {
 
 	tests := []struct {
@@ -30,6 +72,9 @@ func TestGetCmdRun(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		t.Setenv("NOTION_API_KEY", "testkey")
+		t.Setenv("NOTION_DATABASE", "testdbid")
+
 		t.Run(tt.name, func(t *testing.T) {
 			httpmock.Activate()
 			defer httpmock.DeactivateAndReset()

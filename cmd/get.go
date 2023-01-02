@@ -30,8 +30,14 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 		Use:   "get",
 		Short: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			o.Complete(cmd, args)
-			o.Run(cmd, args)
+			err := o.Complete(cmd, args)
+			if err != nil {
+				return err
+			}
+			err = o.Run(cmd, args)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}
@@ -41,7 +47,11 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *GetOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = os.Getenv("NOTION_DATABASE")
+	db, err := getDBID()
+	if err != nil {
+		return err
+	}
+	o.DB = db
 	return nil
 }
 
@@ -52,7 +62,11 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 		fmt.Printf("get markdown to %s.md\n", name)
 		return nil
 	}
-	client := notion.NewClient(getSecret())
+	secret, err := getSecret()
+	if err != nil {
+		return err
+	}
+	client := notion.NewClient(secret)
 	queryResult, err := client.QueryDatabase(context.Background(), o.DB, nil)
 
 	if err != nil {
@@ -63,8 +77,4 @@ func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
 	w.Flush()
 	return nil
 
-}
-
-func getSecret() string {
-	return os.Getenv("NOTION_API_KEY")
 }

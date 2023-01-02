@@ -50,8 +50,18 @@ func newCmdPush(o *PushOptions, writer io.Writer) *cobra.Command {
 }
 
 func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
-	o.DB = os.Getenv("NOTION_DATABASE")
-	client := notion.NewClient(getSecret())
+	db, err := getDBID()
+	if err != nil {
+		return err
+	}
+	o.DB = db
+	// o.DB = os.Getenv("NOTION_DATABASE")
+
+	secret, err := getSecret()
+	if err != nil {
+		return err
+	}
+	client := notion.NewClient(secret)
 
 	if len(o.Title) == 0 {
 		return fmt.Errorf("required flag(s) title not set")
@@ -70,9 +80,14 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 
 func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 
-	client := notion.NewClient(getSecret())
+	secret, err := getSecret()
+	if err != nil {
+		return err
+	}
+
+	client := notion.NewClient(secret)
 	params := o.newCreatePageParams()
-	_, err := client.CreatePage(context.Background(), params)
+	_, err = client.CreatePage(context.Background(), params)
 
 	if err != nil {
 		return err

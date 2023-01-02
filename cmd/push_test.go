@@ -71,7 +71,7 @@ func TestNewCreatePageParam(t *testing.T) {
 	}
 }
 
-func TestPushOptionComplete(t *testing.T) {
+func TestPushOptionCompleteErr(t *testing.T) {
 
 	tests := []struct {
 		name       string
@@ -84,6 +84,10 @@ func TestPushOptionComplete(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+
+		t.Setenv("NOTION_API_KEY", "testkey")
+		t.Setenv("NOTION_DATABASE", "testdbid")
+
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := newCmdPush(&PushOptions{}, os.Stdout)
 			pushOptions := newTestPushErrOptions()
