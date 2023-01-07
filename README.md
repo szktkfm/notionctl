@@ -33,7 +33,7 @@ $ notionctl push --title todo --description "Buy toothpaste."
 
 $ notionctl push --title todo --file todo.txt
 
-$ cat <<EOF | notionctl --title todo --file
+$ cat <<EOF | notionctl --title todo --file -
 Buy toothpaste.
 EOF
 ```
