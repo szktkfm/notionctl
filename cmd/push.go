@@ -1,14 +1,17 @@
 package cmd
 
 import (
-	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
+	"github.com/szktkfm/notionctl/util"
+	"github.com/yuin/goldmark"
 )
 
 func init() {
@@ -55,7 +58,6 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	o.DB = db
-	// o.DB = os.Getenv("NOTION_DATABASE")
 
 	secret, err := getSecret()
 	if err != nil {
@@ -70,6 +72,7 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 	// If --file option is set to -, read from stdin
 	if o.FilePath != "-" {
 		o.In, _ = os.Open(o.FilePath)
+		// TODO close o.In
 	} else {
 		o.In = cmd.InOrStdin()
 	}
@@ -123,23 +126,28 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 }
 
 func (o *PushOptions) buildBlocksFromInput() []notion.Block {
-	scanner := bufio.NewScanner(o.In)
 
-	var blocks []notion.Block
-	for scanner.Scan() {
-		blocks = append(blocks,
-			notion.ParagraphBlock{
-				RichText: []notion.RichText{
-					{
-						Text: &notion.Text{
-							Content: scanner.Text(),
-						},
-					},
-				},
-			},
-		)
-	}
-	return blocks
+	// TODO: markdownからパースする
+
+	source, _ := io.ReadAll(o.In)
+
+	var buf bytes.Buffer
+	buf.WriteString(`{"results": [`)
+	md := goldmark.New(
+		goldmark.WithExtensions(util.NotionExtension),
+	)
+	md.Convert(source, &buf)
+
+	buf.Truncate(buf.Len() - 1)
+	buf.WriteString(`]}`)
+
+	// fmt.Printf("%v", buf.String())
+	var param notion.BlockChildrenResponse
+	json.Unmarshal(buf.Bytes(), &param)
+
+	fmt.Printf("%v", buf.String())
+
+	return param.Results
 }
 
 func stringToRichTexts(content string) []notion.RichText {

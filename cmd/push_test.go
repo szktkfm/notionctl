@@ -43,9 +43,10 @@ func TestNewCreatePageParam(t *testing.T) {
 					},
 				},
 				Children: []notion.Block{
-					notion.ParagraphBlock{
+					&notion.ParagraphBlock{
 						RichText: []notion.RichText{
 							{
+								Type: notion.RichTextTypeText,
 								Text: &notion.Text{
 									Content: "paragraph line",
 								},

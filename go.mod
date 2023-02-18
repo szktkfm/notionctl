@@ -8,6 +8,7 @@ require (
 	github.com/jarcoal/httpmock v1.2.0
 	github.com/mattn/go-runewidth v0.0.14
 	github.com/spf13/cobra v1.6.1
+	github.com/yuin/goldmark v1.5.4
 	k8s.io/apimachinery v0.26.0
 	mkuznets.com/go/tabwriter v0.1.2
 )
