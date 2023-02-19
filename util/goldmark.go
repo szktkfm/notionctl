@@ -73,11 +73,62 @@ var BlockquoteAttributeFilter = GlobalAttributeFilter.Extend(
 	[]byte("cite"),
 )
 
+func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Heading)
+	if entering {
+		if n.Level == 1 {
+			_, _ = w.WriteString(
+				`{
+				"object": "block",
+				"type": "heading_1",
+				"heading_1": {
+					"rich_text": [{ "type": "text", "text": { "content": "`,
+			)
+
+		} else if n.Level == 2 {
+			_, _ = w.WriteString(
+				`{
+				"object": "block",
+				"type": "heading_2",
+				"heading_2": {
+					"rich_text": [{ "type": "text", "text": { "content": "`,
+			)
+		} else if n.Level == 4 {
+			_, _ = w.WriteString(
+				`{
+				"object": "block",
+				"type": "heading_3",
+				"heading_3": {
+					"rich_text": [{ "type": "text", "text": { "content": "`,
+			)
+		} else {
+			_, _ = w.WriteString(
+				`{"object": "block",
+			"type": "paragraph",
+			"paragraph": {
+				"rich_text": [
+					{
+						"type": "text",
+						"text": {
+						"content": "`,
+			)
+		}
+		if n.Attributes() != nil {
+			html.RenderAttributes(w, node, HeadingAttributeFilter)
+		}
+	} else {
+		_, _ = w.WriteString(
+			`" }}]}},`,
+		)
+	}
+	return ast.WalkContinue, nil
+}
+
 func (r *NotionRenderer) renderBlockquote(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		if n.Attributes() != nil {
 			_, _ = w.WriteString("<blockquote")
-			html.RenderAttributes(w, n, BlockquoteAttributeFilter)
+			// html.RenderAttributes(w, n, BlockquoteAttributeFilter)
 			_ = w.WriteByte('>')
 		} else {
 			_, _ = w.WriteString("<blockquote>\n")
@@ -517,26 +568,49 @@ var ParagraphAttributeFilter = GlobalAttributeFilter
 func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Heading)
 	if entering {
-		_, _ = w.WriteString(
-			`{
-			"object": "block",
-			"type": "heading_2",
-			"heading_2": {
-				"rich_text": [{ "type": "text", "text": { "content": "`,
-		)
-		// _ = w.WriteByte("0123456"[n.Level])
+		if n.Level == 1 {
+			_, _ = w.WriteString(
+				`{
+				"object": "block",
+				"type": "heading_1",
+				"heading_1": {
+					"rich_text": [{ "type": "text", "text": { "content": "`,
+			)
+
+		} else if n.Level == 2 {
+			_, _ = w.WriteString(
+				`{
+				"object": "block",
+				"type": "heading_2",
+				"heading_2": {
+					"rich_text": [{ "type": "text", "text": { "content": "`,
+			)
+		} else if n.Level == 4 {
+			_, _ = w.WriteString(
+				`{
+				"object": "block",
+				"type": "heading_3",
+				"heading_3": {
+					"rich_text": [{ "type": "text", "text": { "content": "`,
+			)
+		} else {
+			_, _ = w.WriteString(
+				`{"object": "block",
+			"type": "paragraph",
+			"paragraph": {
+				"rich_text": [
+					{
+						"type": "text",
+						"text": {
+						"content": "`,
+			)
+		}
 		if n.Attributes() != nil {
 			html.RenderAttributes(w, node, HeadingAttributeFilter)
 		}
-		// _ = w.WriteByte('>')
 	} else {
-		// _, _ = w.WriteString("</h")
-		// _ = w.WriteByte("0123456"[n.Level])
-		// _, _ = w.WriteString(">\n")
 		_, _ = w.WriteString(
-			`" } }]
-			}
-		},`,
+			`" }}]}},`,
 		)
 	}
 	return ast.WalkContinue, nil
