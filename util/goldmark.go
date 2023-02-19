@@ -1,6 +1,10 @@
 package util
 
 import (
+	"bytes"
+	"fmt"
+	"unicode/utf8"
+
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -34,6 +38,446 @@ func (r *NotionRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) 
 	// reg.Register(ast.KindTaskCheckBox, r.renderTaskCheckBox)
 	reg.Register(ast.KindHeading, r.renderHeading)
 	reg.Register(ast.KindParagraph, r.renderParagraph)
+
+	reg.Register(ast.KindDocument, r.renderDocument)
+	reg.Register(ast.KindHeading, r.renderHeading)
+	reg.Register(ast.KindBlockquote, r.renderBlockquote)
+	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
+	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
+	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
+	reg.Register(ast.KindList, r.renderList)
+	reg.Register(ast.KindListItem, r.renderListItem)
+	reg.Register(ast.KindParagraph, r.renderParagraph)
+	reg.Register(ast.KindTextBlock, r.renderTextBlock)
+	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
+
+	// inlines
+
+	reg.Register(ast.KindAutoLink, r.renderAutoLink)
+	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
+	reg.Register(ast.KindEmphasis, r.renderEmphasis)
+	// reg.Register(ast.KindImage, r.renderImage)
+	reg.Register(ast.KindLink, r.renderLink)
+	reg.Register(ast.KindRawHTML, r.renderRawHTML)
+	reg.Register(ast.KindText, r.renderText)
+	reg.Register(ast.KindString, r.renderString)
+
+}
+
+func (r *NotionRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	// nothing to do
+	return ast.WalkContinue, nil
+}
+
+var BlockquoteAttributeFilter = GlobalAttributeFilter.Extend(
+	[]byte("cite"),
+)
+
+func (r *NotionRenderer) renderBlockquote(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<blockquote")
+			html.RenderAttributes(w, n, BlockquoteAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<blockquote>\n")
+		}
+	} else {
+		_, _ = w.WriteString("</blockquote>\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *NotionRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		_, _ = w.WriteString("<pre><code>")
+		r.writeLines(w, source, n)
+	} else {
+		_, _ = w.WriteString("</code></pre>\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *NotionRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.FencedCodeBlock)
+	if entering {
+		_, _ = w.WriteString("<pre><code")
+		language := n.Language(source)
+		if language != nil {
+			_, _ = w.WriteString(" class=\"language-")
+			r.Writer.Write(w, language)
+			_, _ = w.WriteString("\"")
+		}
+		_ = w.WriteByte('>')
+		r.writeLines(w, source, n)
+	} else {
+		_, _ = w.WriteString("</code></pre>\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *NotionRenderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.HTMLBlock)
+	if entering {
+		if r.Unsafe {
+			l := n.Lines().Len()
+			for i := 0; i < l; i++ {
+				line := n.Lines().At(i)
+				r.Writer.SecureWrite(w, line.Value(source))
+			}
+		} else {
+			_, _ = w.WriteString("<!-- raw HTML omitted -->\n")
+		}
+	} else {
+		if n.HasClosure() {
+			if r.Unsafe {
+				closure := n.ClosureLine
+				r.Writer.SecureWrite(w, closure.Value(source))
+			} else {
+				_, _ = w.WriteString("<!-- raw HTML omitted -->\n")
+			}
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+// ListAttributeFilter defines attribute names which list elements can have.
+var ListAttributeFilter = GlobalAttributeFilter.Extend(
+	[]byte("start"),
+	[]byte("reversed"),
+	[]byte("type"),
+)
+
+func (r *NotionRenderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.List)
+	tag := "ul"
+	if n.IsOrdered() {
+		tag = "ol"
+	}
+	if entering {
+		_ = w.WriteByte('<')
+		_, _ = w.WriteString(tag)
+		if n.IsOrdered() && n.Start != 1 {
+			fmt.Fprintf(w, " start=\"%d\"", n.Start)
+		}
+		if n.Attributes() != nil {
+			html.RenderAttributes(w, n, ListAttributeFilter)
+		}
+		_, _ = w.WriteString(">\n")
+	} else {
+		_, _ = w.WriteString("</")
+		_, _ = w.WriteString(tag)
+		_, _ = w.WriteString(">\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+// ListItemAttributeFilter defines attribute names which list item elements can have.
+var ListItemAttributeFilter = GlobalAttributeFilter.Extend(
+	[]byte("value"),
+)
+
+func (r *NotionRenderer) renderListItem(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<li")
+			html.RenderAttributes(w, n, ListItemAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<li>")
+		}
+		fc := n.FirstChild()
+		if fc != nil {
+			if _, ok := fc.(*ast.TextBlock); !ok {
+				_ = w.WriteByte('\n')
+			}
+		}
+	} else {
+		_, _ = w.WriteString("</li>\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+// ParagraphAttributeFilter defines attribute names which paragraph elements can have.
+// var ParagraphAttributeFilter = GlobalAttributeFilter
+
+// func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+// 	if entering {
+// 		if n.Attributes() != nil {
+// 			_, _ = w.WriteString("<p")
+// 			html.RenderAttributes(w, n, ParagraphAttributeFilter)
+// 			_ = w.WriteByte('>')
+// 		} else {
+// 			_, _ = w.WriteString("<p>")
+// 		}
+// 	} else {
+// 		_, _ = w.WriteString("</p>\n")
+// 	}
+// 	return ast.WalkContinue, nil
+// }
+
+func (r *NotionRenderer) renderTextBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		if _, ok := n.NextSibling().(ast.Node); ok && n.FirstChild() != nil {
+			_ = w.WriteByte('\n')
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+// ThematicAttributeFilter defines attribute names which hr elements can have.
+var ThematicAttributeFilter = GlobalAttributeFilter.Extend(
+	[]byte("align"),   // [Deprecated]
+	[]byte("color"),   // [Not Standardized]
+	[]byte("noshade"), // [Deprecated]
+	[]byte("size"),    // [Deprecated]
+	[]byte("width"),   // [Deprecated]
+)
+
+func (r *NotionRenderer) renderThematicBreak(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	_, _ = w.WriteString("<hr")
+	if n.Attributes() != nil {
+		html.RenderAttributes(w, n, ThematicAttributeFilter)
+	}
+	if r.XHTML {
+		_, _ = w.WriteString(" />\n")
+	} else {
+		_, _ = w.WriteString(">\n")
+	}
+	return ast.WalkContinue, nil
+}
+
+// LinkAttributeFilter defines attribute names which link elements can have.
+var LinkAttributeFilter = GlobalAttributeFilter.Extend(
+	[]byte("download"),
+	// []byte("href"),
+	[]byte("hreflang"),
+	[]byte("media"),
+	[]byte("ping"),
+	[]byte("referrerpolicy"),
+	[]byte("rel"),
+	[]byte("shape"),
+	[]byte("target"),
+)
+
+func (r *NotionRenderer) renderAutoLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.AutoLink)
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	_, _ = w.WriteString(`<a href="`)
+	url := n.URL(source)
+	label := n.Label(source)
+	if n.AutoLinkType == ast.AutoLinkEmail && !bytes.HasPrefix(bytes.ToLower(url), []byte("mailto:")) {
+		_, _ = w.WriteString("mailto:")
+	}
+	_, _ = w.Write(util.EscapeHTML(util.URLEscape(url, false)))
+	if n.Attributes() != nil {
+		_ = w.WriteByte('"')
+		html.RenderAttributes(w, n, LinkAttributeFilter)
+		_ = w.WriteByte('>')
+	} else {
+		_, _ = w.WriteString(`">`)
+	}
+	_, _ = w.Write(util.EscapeHTML(label))
+	_, _ = w.WriteString(`</a>`)
+	return ast.WalkContinue, nil
+}
+
+// CodeAttributeFilter defines attribute names which code elements can have.
+var CodeAttributeFilter = GlobalAttributeFilter
+
+func (r *NotionRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<code")
+			html.RenderAttributes(w, n, CodeAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<code>")
+		}
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			segment := c.(*ast.Text).Segment
+			value := segment.Value(source)
+			if bytes.HasSuffix(value, []byte("\n")) {
+				r.Writer.RawWrite(w, value[:len(value)-1])
+				r.Writer.RawWrite(w, []byte(" "))
+			} else {
+				r.Writer.RawWrite(w, value)
+			}
+		}
+		return ast.WalkSkipChildren, nil
+	}
+	_, _ = w.WriteString("</code>")
+	return ast.WalkContinue, nil
+}
+
+// EmphasisAttributeFilter defines attribute names which emphasis elements can have.
+var EmphasisAttributeFilter = GlobalAttributeFilter
+
+func (r *NotionRenderer) renderEmphasis(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Emphasis)
+	tag := "em"
+	if n.Level == 2 {
+		tag = "strong"
+	}
+	if entering {
+		_ = w.WriteByte('<')
+		_, _ = w.WriteString(tag)
+		if n.Attributes() != nil {
+			html.RenderAttributes(w, n, EmphasisAttributeFilter)
+		}
+		_ = w.WriteByte('>')
+	} else {
+		_, _ = w.WriteString("</")
+		_, _ = w.WriteString(tag)
+		_ = w.WriteByte('>')
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *NotionRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Link)
+	if entering {
+		_, _ = w.WriteString("<a href=\"")
+		if r.Unsafe || !html.IsDangerousURL(n.Destination) {
+			_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
+		}
+		_ = w.WriteByte('"')
+		if n.Title != nil {
+			_, _ = w.WriteString(` title="`)
+			r.Writer.Write(w, n.Title)
+			_ = w.WriteByte('"')
+		}
+		if n.Attributes() != nil {
+			html.RenderAttributes(w, n, LinkAttributeFilter)
+		}
+		_ = w.WriteByte('>')
+	} else {
+		_, _ = w.WriteString("</a>")
+	}
+	return ast.WalkContinue, nil
+}
+
+// ImageAttributeFilter defines attribute names which image elements can have.
+var ImageAttributeFilter = GlobalAttributeFilter.Extend(
+	[]byte("align"),
+	[]byte("border"),
+	[]byte("crossorigin"),
+	[]byte("decoding"),
+	[]byte("height"),
+	[]byte("importance"),
+	[]byte("intrinsicsize"),
+	[]byte("ismap"),
+	[]byte("loading"),
+	[]byte("referrerpolicy"),
+	[]byte("sizes"),
+	[]byte("srcset"),
+	[]byte("usemap"),
+	[]byte("width"),
+)
+
+// func (r *NotionRenderer) renderImage(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+// 	if !entering {
+// 		return ast.WalkContinue, nil
+// 	}
+// 	n := node.(*ast.Image)
+// 	_, _ = w.WriteString("<img src=\"")
+// 	if r.Unsafe || !html.IsDangerousURL(n.Destination) {
+// 		_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
+// 	}
+// 	_, _ = w.WriteString(`" alt="`)
+// 	_, _ = w.Write(html.nodeToHTMLText(n, source))
+// 	_ = w.WriteByte('"')
+// 	if n.Title != nil {
+// 		_, _ = w.WriteString(` title="`)
+// 		r.Writer.Write(w, n.Title)
+// 		_ = w.WriteByte('"')
+// 	}
+// 	if n.Attributes() != nil {
+// 		html.RenderAttributes(w, n, ImageAttributeFilter)
+// 	}
+// 	if r.XHTML {
+// 		_, _ = w.WriteString(" />")
+// 	} else {
+// 		_, _ = w.WriteString(">")
+// 	}
+// 	return ast.WalkSkipChildren, nil
+// }
+
+func (r *NotionRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkSkipChildren, nil
+	}
+	if r.Unsafe {
+		n := node.(*ast.RawHTML)
+		l := n.Segments.Len()
+		for i := 0; i < l; i++ {
+			segment := n.Segments.At(i)
+			_, _ = w.Write(segment.Value(source))
+		}
+		return ast.WalkSkipChildren, nil
+	}
+	_, _ = w.WriteString("<!-- raw HTML omitted -->")
+	return ast.WalkSkipChildren, nil
+}
+
+func (r *NotionRenderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.Text)
+	segment := n.Segment
+	if n.IsRaw() {
+		r.Writer.RawWrite(w, segment.Value(source))
+	} else {
+		value := segment.Value(source)
+		r.Writer.Write(w, value)
+		if n.HardLineBreak() || (n.SoftLineBreak() && r.HardWraps) {
+			if r.XHTML {
+				_, _ = w.WriteString("<br />\n")
+			} else {
+				_, _ = w.WriteString("<br>\n")
+			}
+		} else if n.SoftLineBreak() {
+			if r.EastAsianLineBreaks && len(value) != 0 {
+				sibling := node.NextSibling()
+				if sibling != nil && sibling.Kind() == ast.KindText {
+					if siblingText := sibling.(*ast.Text).Text(source); len(siblingText) != 0 {
+						thisLastRune := util.ToRune(value, len(value)-1)
+						siblingFirstRune, _ := utf8.DecodeRune(siblingText)
+						if !(util.IsEastAsianWideRune(thisLastRune) &&
+							util.IsEastAsianWideRune(siblingFirstRune)) {
+							_ = w.WriteByte('\n')
+						}
+					}
+				}
+			} else {
+				_ = w.WriteByte('\n')
+			}
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *NotionRenderer) renderString(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.String)
+	if n.IsCode() {
+		_, _ = w.Write(n.Value)
+	} else {
+		if n.IsRaw() {
+			r.Writer.RawWrite(w, n.Value)
+		} else {
+			r.Writer.Write(w, n.Value)
+		}
+	}
+	return ast.WalkContinue, nil
 }
 
 var GlobalAttributeFilter = util.NewBytesFilter(
@@ -119,30 +563,13 @@ func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.
 	return ast.WalkContinue, nil
 }
 
-func (r *NotionRenderer) renderHeading2(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Heading)
-	if entering {
-		_, _ = w.WriteString("uwagaki2 <h")
-		_ = w.WriteByte("0123456"[n.Level])
-		if n.Attributes() != nil {
-			html.RenderAttributes(w, node, HeadingAttributeFilter)
-		}
-		_ = w.WriteByte('>')
-	} else {
-		_, _ = w.WriteString("</h")
-		_ = w.WriteByte("0123456"[n.Level])
-		_, _ = w.WriteString(">\n")
-	}
-	return ast.WalkContinue, nil
-}
-
-type taskList struct {
+type notionExtension struct {
 }
 
 // NotionExtension is an extension that allow you to use GFM task lists.
-var NotionExtension = &taskList{}
+var NotionExtension = &notionExtension{}
 
-func (e *taskList) Extend(m goldmark.Markdown) {
+func (e *notionExtension) Extend(m goldmark.Markdown) {
 	// checkbox parserはDefaultParserに含まれていないので、このoptionは追加する必要があるが、、面倒だから飛ばそうかな。
 	// m.Parser().AddOptions(parser.WithInlineParsers(
 	// 	util.Prioritized(NewTaskCheckBoxParser(), 0),
@@ -150,4 +577,12 @@ func (e *taskList) Extend(m goldmark.Markdown) {
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(NewNotionRenderer(), 500),
 	))
+}
+
+func (r *NotionRenderer) writeLines(w util.BufWriter, source []byte, n ast.Node) {
+	l := n.Lines().Len()
+	for i := 0; i < l; i++ {
+		line := n.Lines().At(i)
+		r.Writer.RawWrite(w, line.Value(source))
+	}
 }

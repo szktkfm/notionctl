@@ -29,8 +29,6 @@ func TestGetCmdRunErr(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		// t.Setenv("NOTION_API_KEY", "testkey")
-		// t.Setenv("NOTION_DATABASE", "testdbid")
 
 		t.Run(tt.name, func(t *testing.T) {
 			httpmock.Activate()
