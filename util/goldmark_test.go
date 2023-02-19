@@ -1,15 +1,37 @@
 package util
 
 import (
-	"bytes"
-	"encoding/json"
 	"testing"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/yuin/goldmark"
 )
+
+// func testrenderblockquote(t *testing.T) {
+// 	source := []byte(
+// 		`> foo
+// `,
+// 	)
+// 	want := []notion.Block{
+// 		&notion.QuoteBlock{
+// 			RichText: []notion.RichText{
+// 				{
+// 					Type: notion.RichTextTypeText,
+// 					Text: &notion.Text{
+// 						Content: "foo",
+// 					},
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	got := MDToNotionBlock(source)
+// 	opt := cmpopts.IgnoreUnexported(notion.QuoteBlock{})
+// 	if diff := cmp.Diff(want, got, opt); diff != "" {
+// 		t.Errorf("Table value is mismatch : %s\n", diff)
+// 	}
+// }
 
 func TestRenderHeading(t *testing.T) {
 	source := []byte(
@@ -40,28 +62,9 @@ func TestRenderHeading(t *testing.T) {
 		},
 	}
 
-	got := mdToNotionBlock(source)
+	got := MDToNotionBlock(source)
 	opt := cmpopts.IgnoreUnexported(notion.Heading2Block{}, notion.Heading1Block{})
 	if diff := cmp.Diff(want, got, opt); diff != "" {
 		t.Errorf("Table value is mismatch : %s\n", diff)
 	}
-}
-
-func mdToNotionBlock(source []byte) []notion.Block {
-	// 共通的な処理なので外だししい。
-	var buf bytes.Buffer
-
-	buf.WriteString(`{"results": [`)
-
-	md := goldmark.New(
-		goldmark.WithExtensions(NotionExtension),
-	)
-	md.Convert(source, &buf)
-
-	buf.Truncate(buf.Len() - 1)
-	buf.WriteString(`]}`)
-
-	var got notion.BlockChildrenResponse
-	json.Unmarshal(buf.Bytes(), &got)
-	return got.Results
 }
