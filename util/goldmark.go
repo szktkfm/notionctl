@@ -124,24 +124,33 @@ func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 	return ast.WalkContinue, nil
 }
 
+// TODO: blockがnestedしている場合は考える
 func (r *NotionRenderer) renderBlockquote(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		if n.Attributes() != nil {
-			_, _ = w.WriteString("<blockquote")
-			// html.RenderAttributes(w, n, BlockquoteAttributeFilter)
-			_ = w.WriteByte('>')
-		} else {
-			_, _ = w.WriteString("<blockquote>\n")
-		}
+		_, _ = w.WriteString(
+			`{
+			"object": "block",
+			"type": "quote",
+			"quote": {
+				"rich_text": [
+					{"type": "text",
+					"text": {"content": ""}
+					}
+				],
+				"children": [`,
+		)
+
 	} else {
-		_, _ = w.WriteString("</blockquote>\n")
+
+		_, _ = w.WriteString(
+			`]}}`,
+		)
 	}
 	return ast.WalkContinue, nil
 }
 
 func (r *NotionRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString("<pre><code>")
 		r.writeLines(w, source, n)
 	} else {
 		_, _ = w.WriteString("</code></pre>\n")
@@ -248,24 +257,6 @@ func (r *NotionRenderer) renderListItem(w util.BufWriter, source []byte, n ast.N
 	}
 	return ast.WalkContinue, nil
 }
-
-// ParagraphAttributeFilter defines attribute names which paragraph elements can have.
-// var ParagraphAttributeFilter = GlobalAttributeFilter
-
-// func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
-// 	if entering {
-// 		if n.Attributes() != nil {
-// 			_, _ = w.WriteString("<p")
-// 			html.RenderAttributes(w, n, ParagraphAttributeFilter)
-// 			_ = w.WriteByte('>')
-// 		} else {
-// 			_, _ = w.WriteString("<p>")
-// 		}
-// 	} else {
-// 		_, _ = w.WriteString("</p>\n")
-// 	}
-// 	return ast.WalkContinue, nil
-// }
 
 func (r *NotionRenderer) renderTextBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
@@ -565,57 +556,6 @@ var HeadingAttributeFilter = GlobalAttributeFilter
 // ParagraphAttributeFilter defines attribute names which paragraph elements can have.
 var ParagraphAttributeFilter = GlobalAttributeFilter
 
-func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Heading)
-	if entering {
-		if n.Level == 1 {
-			_, _ = w.WriteString(
-				`{
-				"object": "block",
-				"type": "heading_1",
-				"heading_1": {
-					"rich_text": [{ "type": "text", "text": { "content": "`,
-			)
-
-		} else if n.Level == 2 {
-			_, _ = w.WriteString(
-				`{
-				"object": "block",
-				"type": "heading_2",
-				"heading_2": {
-					"rich_text": [{ "type": "text", "text": { "content": "`,
-			)
-		} else if n.Level == 4 {
-			_, _ = w.WriteString(
-				`{
-				"object": "block",
-				"type": "heading_3",
-				"heading_3": {
-					"rich_text": [{ "type": "text", "text": { "content": "`,
-			)
-		} else {
-			_, _ = w.WriteString(
-				`{"object": "block",
-			"type": "paragraph",
-			"paragraph": {
-				"rich_text": [
-					{
-						"type": "text",
-						"text": {
-						"content": "`,
-			)
-		}
-		if n.Attributes() != nil {
-			html.RenderAttributes(w, node, HeadingAttributeFilter)
-		}
-	} else {
-		_, _ = w.WriteString(
-			`" }}]}},`,
-		)
-	}
-	return ast.WalkContinue, nil
-}
-
 func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	// textの中の改行の扱いどうしようか
 	if entering {
@@ -645,9 +585,6 @@ var NotionExtension = &notionExtension{}
 
 func (e *notionExtension) Extend(m goldmark.Markdown) {
 	// checkbox parserはDefaultParserに含まれていないので、このoptionは追加する必要があるが、、面倒だから飛ばそうかな。
-	// m.Parser().AddOptions(parser.WithInlineParsers(
-	// 	util.Prioritized(NewTaskCheckBoxParser(), 0),
-	// ))
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(NewNotionRenderer(), 500),
 	))

@@ -6,6 +6,7 @@ import (
 
 	"github.com/dstotijn/go-notion"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/parser"
 )
 
 func MDToNotionBlock(source []byte) []notion.Block {
@@ -14,6 +15,10 @@ func MDToNotionBlock(source []byte) []notion.Block {
 	buf.WriteString(`{"results": [`)
 
 	md := goldmark.New(
+		goldmark.WithParserOptions(
+			parser.WithBlockParsers(),
+			parser.WithParagraphTransformers(),
+		),
 		goldmark.WithExtensions(NotionExtension),
 	)
 	md.Convert(source, &buf)
