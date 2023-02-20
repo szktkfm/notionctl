@@ -18,10 +18,9 @@ func MDToNotionBlock(source []byte) []notion.Block {
 	)
 	md.Convert(source, &buf)
 
-	buf.Truncate(buf.Len() - 1)
 	buf.WriteString(`]}`)
 
-	var got notion.BlockChildrenResponse
-	json.Unmarshal(buf.Bytes(), &got)
-	return got.Results
+	var param notion.BlockChildrenResponse
+	json.Unmarshal(bytes.ReplaceAll(buf.Bytes(), []byte("}{"), []byte("},{")), &param)
+	return param.Results
 }

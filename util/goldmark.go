@@ -118,7 +118,7 @@ func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 		}
 	} else {
 		_, _ = w.WriteString(
-			`" }}]}},`,
+			`" }}]}}`,
 		)
 	}
 	return ast.WalkContinue, nil
@@ -631,7 +631,7 @@ func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.
 		)
 	} else {
 		_, _ = w.WriteString(
-			`"}}]}},`,
+			`"}}]}}`,
 		)
 	}
 	return ast.WalkContinue, nil
