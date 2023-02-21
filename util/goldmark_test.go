@@ -75,8 +75,19 @@ func TestCodeBlock(t *testing.T) {
 	f, _ := os.Open("_test/codeblock.md")
 	source, _ := io.ReadAll(f)
 
+	wantLang := "bash"
 	want := []notion.Block{
-		&notion.CodeBlock{
+		&notion.Heading1Block{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "head1",
+					},
+				},
+			},
+		},
+		&notion.ParagraphBlock{
 			RichText: []notion.RichText{
 				{
 					Type: notion.RichTextTypeText,
@@ -86,10 +97,25 @@ func TestCodeBlock(t *testing.T) {
 				},
 			},
 		},
+		&notion.CodeBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "echo\n",
+					},
+				},
+			},
+			Language: &wantLang,
+		},
 	}
 
 	got := MDToNotionBlock(source)
-	opt := cmpopts.IgnoreUnexported(notion.Heading2Block{}, notion.Heading1Block{})
+	opt := cmpopts.IgnoreUnexported(
+		notion.Heading1Block{},
+		notion.CodeBlock{},
+		notion.ParagraphBlock{},
+	)
 	if diff := cmp.Diff(want, got, opt); diff != "" {
 		t.Errorf("Table value is mismatch : %s\n", diff)
 	}

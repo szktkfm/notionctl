@@ -111,21 +111,24 @@ func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 			s = `{
 				"object": "block",
 				"type": "heading_2",
-				"heading_1": {
+				"heading_2": {
 					"rich_text": [{ "type": "text", "text": { "content": "`
 		} else if n.Level == 4 {
 			s = `{
 				"object": "block",
 				"type": "heading_3",
-				"heading_1": {
+				"heading_3": {
 					"rich_text": [{ "type": "text", "text": { "content": "`
 
 		} else {
-			s = `{
-				"object": "block",
-				"type": "heading_3",
-				"heading_1": {
-					"rich_text": [{ "type": "text", "text": { "content": "`
+			s = `{"object": "block",
+			"type": "paragraph",
+			"paragraph": {
+				"rich_text": [
+					{
+						"type": "text",
+						"text": {
+						"content": "`
 		}
 
 		_, _ = w.WriteString(
