@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/yuin/goldmark"
@@ -54,7 +55,6 @@ func (r *NotionRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) 
 	// inlines
 
 	reg.Register(ast.KindAutoLink, r.renderAutoLink)
-	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindEmphasis, r.renderEmphasis)
 	// reg.Register(ast.KindImage, r.renderImage)
 	reg.Register(ast.KindLink, r.renderLink)
@@ -73,52 +73,67 @@ var BlockquoteAttributeFilter = GlobalAttributeFilter.Extend(
 	[]byte("cite"),
 )
 
-func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Heading)
+func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		if n.Level == 1 {
-			_, _ = w.WriteString(
-				`{
-				"object": "block",
-				"type": "heading_1",
-				"heading_1": {
-					"rich_text": [{ "type": "text", "text": { "content": "`,
-			)
-
-		} else if n.Level == 2 {
-			_, _ = w.WriteString(
-				`{
-				"object": "block",
-				"type": "heading_2",
-				"heading_2": {
-					"rich_text": [{ "type": "text", "text": { "content": "`,
-			)
-		} else if n.Level == 4 {
-			_, _ = w.WriteString(
-				`{
-				"object": "block",
-				"type": "heading_3",
-				"heading_3": {
-					"rich_text": [{ "type": "text", "text": { "content": "`,
-			)
-		} else {
-			_, _ = w.WriteString(
-				`{"object": "block",
+		s := `{"object": "block",
 			"type": "paragraph",
 			"paragraph": {
 				"rich_text": [
 					{
 						"type": "text",
 						"text": {
-						"content": "`,
-			)
-		}
-		if n.Attributes() != nil {
-			html.RenderAttributes(w, node, HeadingAttributeFilter)
-		}
+						"content": "`
+
+		_, _ = w.WriteString(
+			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+		)
+
 	} else {
 		_, _ = w.WriteString(
-			`" }}]}}`,
+			`"}}]}}`,
+		)
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Heading)
+	if entering {
+		var s string
+		if n.Level == 1 {
+			s = `{
+				"object": "block",
+				"type": "heading_1",
+				"heading_1": {
+					"rich_text": [{ "type": "text", "text": { "content": "`
+
+		} else if n.Level == 2 {
+			s = `{
+				"object": "block",
+				"type": "heading_2",
+				"heading_1": {
+					"rich_text": [{ "type": "text", "text": { "content": "`
+		} else if n.Level == 4 {
+			s = `{
+				"object": "block",
+				"type": "heading_3",
+				"heading_1": {
+					"rich_text": [{ "type": "text", "text": { "content": "`
+
+		} else {
+			s = `{
+				"object": "block",
+				"type": "heading_3",
+				"heading_1": {
+					"rich_text": [{ "type": "text", "text": { "content": "`
+		}
+
+		_, _ = w.WriteString(
+			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+		)
+	} else {
+		_, _ = w.WriteString(
+			`"}}]}}`,
 		)
 	}
 	return ast.WalkContinue, nil
@@ -127,8 +142,7 @@ func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 // TODO: blockがnestedしている場合は考える
 func (r *NotionRenderer) renderBlockquote(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(
-			`{
+		s := `{
 			"object": "block",
 			"type": "quote",
 			"quote": {
@@ -137,7 +151,10 @@ func (r *NotionRenderer) renderBlockquote(w util.BufWriter, source []byte, n ast
 					"text": {"content": ""}
 					}
 				],
-				"children": [`,
+				"children": [`
+
+		_, _ = w.WriteString(
+			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
 		)
 
 	} else {
@@ -161,17 +178,23 @@ func (r *NotionRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.
 func (r *NotionRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
 	if entering {
-		_, _ = w.WriteString("<pre><code")
 		language := n.Language(source)
-		if language != nil {
-			_, _ = w.WriteString(" class=\"language-")
-			r.Writer.Write(w, language)
-			_, _ = w.WriteString("\"")
-		}
-		_ = w.WriteByte('>')
+		s := fmt.Sprintf(`{
+			"object": "block","type": "code",
+			"code": {
+				"language": "%s", "rich_text": [{"type": "text","text": {"content": "`, language)
+
+		_, _ = w.WriteString(
+			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+		)
+
+		// _ = w.WriteByte('>')
+
 		r.writeLines(w, source, n)
 	} else {
-		_, _ = w.WriteString("</code></pre>\n")
+		_, _ = w.WriteString(
+			`"}}]}}`,
+		)
 	}
 	return ast.WalkContinue, nil
 }
@@ -331,31 +354,6 @@ func (r *NotionRenderer) renderAutoLink(w util.BufWriter, source []byte, node as
 
 // CodeAttributeFilter defines attribute names which code elements can have.
 var CodeAttributeFilter = GlobalAttributeFilter
-
-func (r *NotionRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
-	if entering {
-		if n.Attributes() != nil {
-			_, _ = w.WriteString("<code")
-			html.RenderAttributes(w, n, CodeAttributeFilter)
-			_ = w.WriteByte('>')
-		} else {
-			_, _ = w.WriteString("<code>")
-		}
-		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			segment := c.(*ast.Text).Segment
-			value := segment.Value(source)
-			if bytes.HasSuffix(value, []byte("\n")) {
-				r.Writer.RawWrite(w, value[:len(value)-1])
-				r.Writer.RawWrite(w, []byte(" "))
-			} else {
-				r.Writer.RawWrite(w, value)
-			}
-		}
-		return ast.WalkSkipChildren, nil
-	}
-	_, _ = w.WriteString("</code>")
-	return ast.WalkContinue, nil
-}
 
 // EmphasisAttributeFilter defines attribute names which emphasis elements can have.
 var EmphasisAttributeFilter = GlobalAttributeFilter
@@ -555,27 +553,6 @@ var HeadingAttributeFilter = GlobalAttributeFilter
 
 // ParagraphAttributeFilter defines attribute names which paragraph elements can have.
 var ParagraphAttributeFilter = GlobalAttributeFilter
-
-func (r *NotionRenderer) renderParagraph(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
-	// textの中の改行の扱いどうしようか
-	if entering {
-		_, _ = w.WriteString(
-			`{"object": "block",
-			"type": "paragraph",
-			"paragraph": {
-				"rich_text": [
-					{
-						"type": "text",
-						"text": {
-						"content": "`,
-		)
-	} else {
-		_, _ = w.WriteString(
-			`"}}]}}`,
-		)
-	}
-	return ast.WalkContinue, nil
-}
 
 type notionExtension struct {
 }

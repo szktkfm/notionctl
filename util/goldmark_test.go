@@ -1,6 +1,8 @@
 package util
 
 import (
+	"io"
+	"os"
 	"testing"
 
 	"github.com/dstotijn/go-notion"
@@ -56,6 +58,30 @@ func TestRenderHeading(t *testing.T) {
 					Type: notion.RichTextTypeText,
 					Text: &notion.Text{
 						Content: "title2",
+					},
+				},
+			},
+		},
+	}
+
+	got := MDToNotionBlock(source)
+	opt := cmpopts.IgnoreUnexported(notion.Heading2Block{}, notion.Heading1Block{})
+	if diff := cmp.Diff(want, got, opt); diff != "" {
+		t.Errorf("Table value is mismatch : %s\n", diff)
+	}
+}
+
+func TestCodeBlock(t *testing.T) {
+	f, _ := os.Open("_test/codeblock.md")
+	source, _ := io.ReadAll(f)
+
+	want := []notion.Block{
+		&notion.CodeBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "foo",
 					},
 				},
 			},
