@@ -148,3 +148,85 @@ func TestLink(t *testing.T) {
 		t.Errorf("Table value is mismatch : %s\n", diff)
 	}
 }
+
+// TODO: nested list
+func TestRenderList(t *testing.T) {
+	source := []byte(
+		`
+- foo
+- bar
+`,
+	)
+
+	want := []notion.Block{
+		&notion.BulletedListItemBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "foo",
+					},
+				},
+			},
+		},
+		&notion.BulletedListItemBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "bar",
+					},
+				},
+			},
+		},
+	}
+
+	got := MDToNotionBlock(source)
+	opt := cmpopts.IgnoreUnexported(
+		notion.BulletedListItemBlock{},
+	)
+	if diff := cmp.Diff(want, got, opt); diff != "" {
+		t.Errorf("Table value is mismatch : %s\n", diff)
+	}
+}
+
+// TODO: nested list
+func TestNestedRenderList(t *testing.T) {
+	source := []byte(
+		`
+- foo
+	- bar
+`,
+	)
+
+	want := []notion.Block{
+		&notion.BulletedListItemBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "foo",
+					},
+				},
+			},
+		},
+		&notion.BulletedListItemBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "bar",
+					},
+				},
+			},
+		},
+	}
+
+	got := MDToNotionBlock(source)
+	opt := cmpopts.IgnoreUnexported(
+		notion.BulletedListItemBlock{},
+	)
+	if diff := cmp.Diff(want, got, opt); diff != "" {
+		t.Errorf("Table value is mismatch : %s\n", diff)
+	}
+}

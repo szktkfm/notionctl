@@ -232,27 +232,8 @@ var ListAttributeFilter = GlobalAttributeFilter.Extend(
 	[]byte("type"),
 )
 
+// TODO: number list
 func (r *NotionRenderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.List)
-	tag := "ul"
-	if n.IsOrdered() {
-		tag = "ol"
-	}
-	if entering {
-		_ = w.WriteByte('<')
-		_, _ = w.WriteString(tag)
-		if n.IsOrdered() && n.Start != 1 {
-			fmt.Fprintf(w, " start=\"%d\"", n.Start)
-		}
-		if n.Attributes() != nil {
-			html.RenderAttributes(w, n, ListAttributeFilter)
-		}
-		_, _ = w.WriteString(">\n")
-	} else {
-		_, _ = w.WriteString("</")
-		_, _ = w.WriteString(tag)
-		_, _ = w.WriteString(">\n")
-	}
 	return ast.WalkContinue, nil
 }
 
@@ -263,22 +244,24 @@ var ListItemAttributeFilter = GlobalAttributeFilter.Extend(
 
 func (r *NotionRenderer) renderListItem(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		if n.Attributes() != nil {
-			_, _ = w.WriteString("<li")
-			html.RenderAttributes(w, n, ListItemAttributeFilter)
-			_ = w.WriteByte('>')
-		} else {
-			_, _ = w.WriteString("<li>")
-		}
-		fc := n.FirstChild()
-		if fc != nil {
-			if _, ok := fc.(*ast.TextBlock); !ok {
-				_ = w.WriteByte('\n')
-			}
-		}
+		s := `{"object": "block",
+			"type": "bulleted_list_item",
+			"bulleted_list_item": {
+				"rich_text": [
+					{
+						"type": "text",
+						"text": {
+						"content": "`
+
+		_, _ = w.WriteString(
+			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+		)
 	} else {
-		_, _ = w.WriteString("</li>\n")
+		_, _ = w.WriteString(
+			`"}}]}}`,
+		)
 	}
+
 	return ast.WalkContinue, nil
 }
 
@@ -384,27 +367,7 @@ func (r *NotionRenderer) renderEmphasis(w util.BufWriter, source []byte, node as
 func (r *NotionRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Link)
 	if entering {
-		// s := ``
 
-		// _, _ = w.WriteString(
-		// 	strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
-		// )
-
-		// _, _ = w.WriteString(s)
-
-		// s = `"
-		// }, "content": "`
-		// _, _ = w.WriteString(s)
-
-		// // if n.Title != nil {
-		// // 	_, _ = w.WriteString(` title="`)
-		// // r.Writer.Write(w, n.Title)
-		// // 	_ = w.WriteByte('"')
-		// // }
-		// if n.Attributes() != nil {
-		// 	html.RenderAttributes(w, n, LinkAttributeFilter)
-		// }
-		// _ = w.WriteByte('>')
 	} else {
 		s := `", "link": {"url": "`
 		_, _ = w.WriteString(s)
@@ -436,34 +399,6 @@ var ImageAttributeFilter = GlobalAttributeFilter.Extend(
 	[]byte("usemap"),
 	[]byte("width"),
 )
-
-// func (r *NotionRenderer) renderImage(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-// 	if !entering {
-// 		return ast.WalkContinue, nil
-// 	}
-// 	n := node.(*ast.Image)
-// 	_, _ = w.WriteString("<img src=\"")
-// 	if r.Unsafe || !html.IsDangerousURL(n.Destination) {
-// 		_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
-// 	}
-// 	_, _ = w.WriteString(`" alt="`)
-// 	_, _ = w.Write(html.nodeToHTMLText(n, source))
-// 	_ = w.WriteByte('"')
-// 	if n.Title != nil {
-// 		_, _ = w.WriteString(` title="`)
-// 		r.Writer.Write(w, n.Title)
-// 		_ = w.WriteByte('"')
-// 	}
-// 	if n.Attributes() != nil {
-// 		html.RenderAttributes(w, n, ImageAttributeFilter)
-// 	}
-// 	if r.XHTML {
-// 		_, _ = w.WriteString(" />")
-// 	} else {
-// 		_, _ = w.WriteString(">")
-// 	}
-// 	return ast.WalkSkipChildren, nil
-// }
 
 func (r *NotionRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
