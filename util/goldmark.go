@@ -191,8 +191,6 @@ func (r *NotionRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, 
 			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
 		)
 
-		// _ = w.WriteByte('>')
-
 		r.writeLines(w, source, n)
 	} else {
 		_, _ = w.WriteString(
@@ -382,25 +380,41 @@ func (r *NotionRenderer) renderEmphasis(w util.BufWriter, source []byte, node as
 	return ast.WalkContinue, nil
 }
 
+// TODO: renderlingはパスかなあ
 func (r *NotionRenderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Link)
 	if entering {
-		_, _ = w.WriteString("<a href=\"")
+		// s := ``
+
+		// _, _ = w.WriteString(
+		// 	strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+		// )
+
+		// _, _ = w.WriteString(s)
+
+		// s = `"
+		// }, "content": "`
+		// _, _ = w.WriteString(s)
+
+		// // if n.Title != nil {
+		// // 	_, _ = w.WriteString(` title="`)
+		// // r.Writer.Write(w, n.Title)
+		// // 	_ = w.WriteByte('"')
+		// // }
+		// if n.Attributes() != nil {
+		// 	html.RenderAttributes(w, n, LinkAttributeFilter)
+		// }
+		// _ = w.WriteByte('>')
+	} else {
+		s := `", "link": {"url": "`
+		_, _ = w.WriteString(s)
+
 		if r.Unsafe || !html.IsDangerousURL(n.Destination) {
 			_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
 		}
-		_ = w.WriteByte('"')
-		if n.Title != nil {
-			_, _ = w.WriteString(` title="`)
-			r.Writer.Write(w, n.Title)
-			_ = w.WriteByte('"')
-		}
-		if n.Attributes() != nil {
-			html.RenderAttributes(w, n, LinkAttributeFilter)
-		}
-		_ = w.WriteByte('>')
-	} else {
-		_, _ = w.WriteString("</a>")
+		_, _ = w.WriteString(
+			`"}`,
+		)
 	}
 	return ast.WalkContinue, nil
 }

@@ -120,3 +120,31 @@ func TestCodeBlock(t *testing.T) {
 		t.Errorf("Table value is mismatch : %s\n", diff)
 	}
 }
+
+func TestLink(t *testing.T) {
+	source := []byte(
+		`[goog](www.google.com)`,
+	)
+
+	want := []notion.Block{
+		&notion.ParagraphBlock{
+			RichText: []notion.RichText{
+				{
+					Type: notion.RichTextTypeText,
+					Text: &notion.Text{
+						Content: "goog",
+						Link:    &notion.Link{URL: "www.google.com"},
+					},
+				},
+			},
+		},
+	}
+
+	got := MDToNotionBlock(source)
+	opt := cmpopts.IgnoreUnexported(
+		notion.ParagraphBlock{},
+	)
+	if diff := cmp.Diff(want, got, opt); diff != "" {
+		t.Errorf("Table value is mismatch : %s\n", diff)
+	}
+}

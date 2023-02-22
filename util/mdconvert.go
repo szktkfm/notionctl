@@ -27,8 +27,9 @@ func MDToNotionBlock(source []byte) []notion.Block {
 
 	b := bytes.ReplaceAll(buf.Bytes(), []byte("}{"), []byte("},{"))
 	b2 := bytes.ReplaceAll(b, []byte("\n"), []byte("\\n"))
+	b3 := bytes.ReplaceAll(b2, []byte("}\"}"), []byte("}}"))
 
 	var param notion.BlockChildrenResponse
-	json.Unmarshal(b2, &param)
+	json.Unmarshal(b3, &param)
 	return param.Results
 }
