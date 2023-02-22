@@ -127,26 +127,26 @@ func (r *NotionRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 // TODO: nested block
 func (r *NotionRenderer) renderBlockquote(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		s := `{
-			"object": "block",
-			"type": "quote",
-			"quote": {
-				"rich_text": [
-					{"type": "text",
-					"text": {"content": ""}
-					}
-				],
-				"children": [`
+		// s := `{
+		// 	"object": "block",
+		// 	"type": "quote",
+		// 	"quote": {
+		// 		"rich_text": [
+		// 			{"type": "text",
+		// 			"text": {"content": ""}
+		// 			}
+		// 		],
+		// 		"children": [`
 
-		_, _ = w.WriteString(
-			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
-		)
+		// _, _ = w.WriteString(
+		// 	strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+		// )
 
 	} else {
 
-		_, _ = w.WriteString(
-			`]}}`,
-		)
+		// _, _ = w.WriteString(
+		// 	`]}}`,
+		// )
 	}
 	return ast.WalkContinue, nil
 }
@@ -164,6 +164,9 @@ func (r *NotionRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, 
 	n := node.(*ast.FencedCodeBlock)
 	if entering {
 		language := n.Language(source)
+		if len(language) == 0 {
+			language = []byte("go")
+		}
 		s := fmt.Sprintf(`{
 			"object": "block","type": "code",
 			"code": {
@@ -187,25 +190,26 @@ func (r *NotionRenderer) renderList(w util.BufWriter, source []byte, node ast.No
 	return ast.WalkContinue, nil
 }
 
+// TODO: If the list is nested, this function is called recursively and the json is not created correctly
 func (r *NotionRenderer) renderListItem(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
-	if entering {
-		s := `{"object": "block",
-			"type": "bulleted_list_item",
-			"bulleted_list_item": {
-				"rich_text": [
-					{
-						"type": "text",
-						"text": {
-						"content": "`
+	// if entering {
+	// 	s := `{"object": "block",
+	// 		"type": "bulleted_list_item",
+	// 		"bulleted_list_item": {
+	// 			"rich_text": [
+	// 				{
+	// 					"type": "text",
+	// 					"text": {
+	// 					"content": "`
 
-		_, _ = w.WriteString(
-			strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
-		)
-	} else {
-		_, _ = w.WriteString(
-			`"}}]}}`,
-		)
-	}
+	// 	_, _ = w.WriteString(
+	// 		strings.ReplaceAll(strings.ReplaceAll(s, "\n", ""), "\t", ""),
+	// 	)
+	// } else {
+	// 	_, _ = w.WriteString(
+	// 		`"}}]}}`,
+	// 	)
+	// }
 
 	return ast.WalkContinue, nil
 }
