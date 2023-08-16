@@ -124,27 +124,8 @@ func (o *PushOptions) newCreatePageParams() notion.CreatePageParams {
 
 func (o *PushOptions) buildBlocksFromInput() []notion.Block {
 
-	// TODO: markdownからパースする
-
 	source, _ := io.ReadAll(o.In)
 
-	// var buf bytes.Buffer
-	// buf.WriteString(`{"results": [`)
-	// md := goldmark.New(
-	// 	goldmark.WithExtensions(util.NotionExtension),
-	// )
-	// md.Convert(source, &buf)
-
-	// buf.Truncate(buf.Len() - 1)
-	// buf.WriteString(`]}`)
-
-	// // fmt.Printf("%v", buf.String())
-	// var param notion.BlockChildrenResponse
-	// json.Unmarshal(buf.Bytes(), &param)
-
-	// fmt.Printf("%v", buf.String())
-
-	// return param.Results
 	return util.MDToNotionBlock(source)
 }
 
