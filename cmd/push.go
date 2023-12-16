@@ -21,6 +21,7 @@ type PushOptions struct {
 	Description string
 	targetDB    notion.Database
 	FilePath    string
+	Client      *notion.Client
 	Out         io.Writer
 	In          io.Reader
 }
@@ -60,7 +61,8 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	client := notion.NewClient(secret)
+
+	o.Client = notion.NewClient(secret)
 
 	if len(o.Title) == 0 {
 		return fmt.Errorf("required flag(s) title not set")
@@ -74,21 +76,14 @@ func (o *PushOptions) Complete(cmd *cobra.Command, args []string) error {
 		o.In = cmd.InOrStdin()
 	}
 
-	o.targetDB, _ = client.FindDatabaseByID(context.Background(), o.DB)
+	o.targetDB, _ = o.Client.FindDatabaseByID(context.Background(), o.DB)
 	return nil
 }
 
 func (o *PushOptions) Run(cmd *cobra.Command, args []string) error {
 
-	secret, err := getSecret()
-	if err != nil {
-		return err
-	}
-
-	client := notion.NewClient(secret)
 	params := o.newCreatePageParams()
-	_, err = client.CreatePage(context.Background(), params)
-
+	_, err := o.Client.CreatePage(context.Background(), params)
 	if err != nil {
 		return err
 	}

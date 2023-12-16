@@ -3,10 +3,11 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"regexp"
 	"testing"
-
-	"github.com/jarcoal/httpmock"
 )
 
 func TestGetCmdRunErr(t *testing.T) {
@@ -24,24 +25,18 @@ func TestGetCmdRunErr(t *testing.T) {
 				Page: "",
 				Wide: false,
 			},
-			// TODO: define []notion.Page and unmashal it
 			wantErrMsg: "required env variables NOTION_API_KEY not set",
 		},
 	}
 	for _, tt := range tests {
+		os.Unsetenv("NOTION_API_KEY")
+		t.Setenv("NOTION_DATABASE", "testdbid")
 
 		t.Run(tt.name, func(t *testing.T) {
-			httpmock.Activate()
-			defer httpmock.DeactivateAndReset()
-			httpmock.RegisterResponder("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", tt.option.DB),
-				httpmock.NewStringResponder(200, tt.queryMock))
-
 			buf := new(bytes.Buffer)
 			tt.option.Out = buf
 			cmd := newCmdGet(tt.option, buf)
-
-			gotErr := tt.option.Run(cmd, []string{"test"})
-
+			gotErr := tt.option.Complete(cmd, []string{"test"})
 			if tt.wantErrMsg != fmt.Sprint(gotErr) {
 				t.Errorf("value is mismatch. want: %s, got: %s", tt.wantErrMsg, gotErr)
 			}
@@ -74,16 +69,19 @@ func TestGetCmdRun(t *testing.T) {
 		t.Setenv("NOTION_DATABASE", "testdbid")
 
 		t.Run(tt.name, func(t *testing.T) {
-			httpmock.Activate()
-			defer httpmock.DeactivateAndReset()
-			httpmock.RegisterResponder("POST", fmt.Sprintf("https://api.notion.com/v1/databases/%s/query", tt.option.DB),
-				httpmock.NewStringResponder(200, tt.queryMock))
-
 			buf := new(bytes.Buffer)
 			tt.option.Out = buf
+
+			tt.option.Client = NewMockClient(
+				&http.Response{
+					StatusCode: 200,
+					Body:       ioutil.NopCloser(bytes.NewBufferString(tt.queryMock)),
+				},
+				"testkey",
+			)
 			cmd := newCmdGet(tt.option, buf)
 
-			tt.option.Run(cmd, []string{"test"})
+			tt.option.Run(cmd)
 			got := buf.String()
 
 			r := regexp.MustCompile(tt.want)

@@ -18,10 +18,11 @@ func init() {
 }
 
 type GetOptions struct {
-	DB   string
-	Page string
-	Wide bool
-	Out  io.Writer
+	DB     string
+	Page   string
+	Wide   bool
+	Out    io.Writer
+	Client *notion.Client
 }
 
 func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
@@ -34,7 +35,7 @@ func newCmdGet(o *GetOptions, writer io.Writer) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = o.Run(cmd, args)
+			err = o.Run(cmd)
 			if err != nil {
 				return err
 			}
@@ -52,29 +53,30 @@ func (o *GetOptions) Complete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	o.DB = db
-	return nil
-}
 
-func (o *GetOptions) Run(cmd *cobra.Command, args []string) error {
-	if len(o.Page) > 0 {
-		// ToDo: get markdown and build name
-		name := "sample"
-		fmt.Printf("get markdown to %s.md\n", name)
-		return nil
-	}
 	secret, err := getSecret()
 	if err != nil {
 		return err
 	}
-	client := notion.NewClient(secret)
-	queryResult, err := client.QueryDatabase(context.Background(), o.DB, nil)
+
+	o.Client = notion.NewClient(secret)
+	return nil
+}
+
+func (o *GetOptions) Run(cmd *cobra.Command) error {
+	if len(o.Page) > 0 {
+		// TODO: Building markdown from API responses.
+		name := "sample"
+		fmt.Printf("get markdown to %s.md\n", name)
+		return nil
+	}
+	queryResult, err := o.Client.QueryDatabase(context.Background(), o.DB, nil)
 
 	if err != nil {
 		return err
 	}
 	w := tabwriter.NewWriter(o.Out, 4, 0, 4, ' ', tabwriter.TabIndent)
-	util.NewDatabaseQueryResponcePrinter(queryResult, w).Print()
+	util.NewDBQueryRespTablePrinter(queryResult, w).Print()
 	w.Flush()
 	return nil
-
 }

@@ -48,7 +48,7 @@ func getIdxOfPrintOrder(query notion.DatabasePropertyType) int {
 	return -1
 }
 
-func NewDatabaseQueryResponcePrinter(res notion.DatabaseQueryResponse, w io.Writer) *TablePrinter {
+func NewDBQueryRespTablePrinter(res notion.DatabaseQueryResponse, w io.Writer) *TablePrinter {
 	return &TablePrinter{table: newTable(res.Results), writer: w}
 
 }
@@ -88,7 +88,6 @@ func selectOptionToString(so *notion.SelectOptions) string {
 func newTable(pages []notion.Page) Table {
 	table := Table{}
 	rows := []Row{}
-	// header := []string{}
 
 	for _, page := range pages {
 		props := page.Properties
