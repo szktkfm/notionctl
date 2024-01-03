@@ -1,6 +1,10 @@
 # notionctl
 A toy notion cli
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/szktkfm/notionctl)](https://goreportcard.com/report/github.com/szktkfm/notionctl)
+![CI](https://github.com/szktkfm/notionctl/actions/workflows/go.yml/badge.svg)
+
+
 ## Installation
 ```
 go install github.com/szktkfm/notionctl...
