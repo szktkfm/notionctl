@@ -8,7 +8,7 @@ import (
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
-	"github.com/szktkfm/notionctl/util"
+	"github.com/szktkfm/notionctl/internal/markdown"
 )
 
 func init() {
@@ -121,7 +121,7 @@ func (o *PushOptions) buildBlocksFromInput() []notion.Block {
 
 	source, _ := io.ReadAll(o.In)
 
-	return util.MDToNotionBlock(source)
+	return markdown.MDToNotionBlock(source)
 }
 
 func stringToRichTexts(content string) []notion.RichText {

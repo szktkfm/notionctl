@@ -6,11 +6,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/szktkfm/notionctl/util"
 	"mkuznets.com/go/tabwriter"
 
 	"github.com/dstotijn/go-notion"
 	"github.com/spf13/cobra"
+	"github.com/szktkfm/notionctl/internal/printer"
 )
 
 func init() {
@@ -76,7 +76,7 @@ func (o *GetOptions) Run(cmd *cobra.Command) error {
 		return err
 	}
 	w := tabwriter.NewWriter(o.Out, 4, 0, 4, ' ', tabwriter.TabIndent)
-	util.NewDBQueryRespTablePrinter(queryResult, w).Print()
+	printer.NewDBQueryRespTablePrinter(queryResult, w).Print()
 	w.Flush()
 	return nil
 }
